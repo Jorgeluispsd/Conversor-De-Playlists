@@ -1,0 +1,16 @@
+# Credenciais e segredos — NUNCA versionar
+.env
+*.db
+token*.json
+
+# Build
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# SO
+.DS_Store
