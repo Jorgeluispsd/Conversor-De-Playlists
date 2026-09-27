@@ -11,7 +11,7 @@ concluindo. As referências de arquivo/classe já existem no esqueleto do projet
   detecta o `../pom.xml` sozinho).
 - [X] Copiar `.env.example` para `.env` na raiz do projeto.
 - [X] Rodar `mvn clean install` e confirmar que builda sem erro.
-- [ ] Rodar `PlaylistConverterApplication` e confirmar no console que aparece
+- [X] Rodar `PlaylistConverterApplication` e confirmar no console que aparece
       "SPOTIFY_CLIENT_ID carregado: false" / "YOUTUBE_API_KEY carregado: false"
       (false porque o `.env` ainda está vazio — é esperado).
 
@@ -57,38 +57,38 @@ concluindo. As referências de arquivo/classe já existem no esqueleto do projet
 - [X] Criar projeto no Google Cloud Console, ativar a **YouTube Data API v3**,
       gerar uma **API key** (não precisa de OAuth para busca).
 - [X] Copiar a chave para `YOUTUBE_API_KEY` no `.env`.
-- [ ] Em `YoutubeMusicService`, implementar `searchCandidates(Track sourceTrack)`:
-  - [ ] Montar a query como `sourceTrack.artist() + " " + sourceTrack.title()`.
-  - [ ] Chamar `youtube.search().list("snippet")` com `q`, `type=video`,
+- [X] Em `YoutubeMusicService`, implementar `searchCandidates(Track sourceTrack)`:
+  - [X] Montar a query como `sourceTrack.artist() + " " + sourceTrack.title()`.
+  - [X] Chamar `youtube.search().list("snippet")` com `q`, `type=video`,
         `maxResults` em torno de 5.
-  - [ ] Mapear cada item do resultado para um `Track` (usando o `videoId` como
+  - [X] Mapear cada item do resultado para um `Track` (usando o `videoId` como
         `id` e o `title` retornado pelo YouTube).
-- [ ] Testar isoladamente: para 2-3 músicas conhecidas, imprimir os 5
+- [X] Testar isoladamente: para 2-3 músicas conhecidas, imprimir os 5
       candidatos brutos retornados (sem nenhum matching ainda) e olhar se fazem
       sentido.
 
 ---
 
-## Fase 4 — Matching visual (seu objetivo atual)
+## Fase 4 — Matching visual
 
-- [ ] Escolher uma lib de similaridade de string (ex: adicionar
+- [X] Escolher uma lib de similaridade de string (ex: adicionar
       `info.debatty:java-string-similarity` no `../pom.xml`) ou implementar
   Levenshtein à mão como exercício.
-- [ ] Em `TrackMatcher.findBestMatch(...)`:
-  - [ ] Normalizar título/artista: minúsculo, remover acentos, remover trechos
+- [X] Em `TrackMatcher.findBestMatch(...)`:
+  - [X] Normalizar título/artista: minúsculo, remover acentos, remover trechos
         entre parênteses/colchetes (`(Official Video)`, `[Lyrics]`, etc.).
-  - [ ] Calcular o score de similaridade entre o título normalizado da origem
+  - [X] Calcular o score de similaridade entre o título normalizado da origem
         e o de cada candidato.
-  - [ ] Aplicar penalidade/descarte se o candidato tiver palavras como `cover`,
+  - [X] Aplicar penalidade/descarte se o candidato tiver palavras como `cover`,
         `live`, `remix`, `8d audio` e a faixa original não tiver.
-  - [ ] Retornar o candidato de maior score como `MatchResult`.
-- [ ] Atualizar `PlaylistConverterApplication.run()` para, em vez de uma faixa
+  - [X] Retornar o candidato de maior score como `MatchResult`.
+- [X] Atualizar `PlaylistConverterApplication.run()` para, em vez de uma faixa
       só, iterar por todas as faixas da playlist de teste:
-  - [ ] Para cada uma: buscar candidatos no YouTube, rodar o `TrackMatcher`,
+  - [X] Para cada uma: buscar candidatos no YouTube, rodar o `TrackMatcher`,
         imprimir `origem -> candidato encontrado -> confiança`.
-- [ ] Rodar contra uma playlist real (ex: a do DJ) e revisar visualmente os
+- [X] Rodar contra uma playlist real (ex: a do DJ) e revisar visualmente os
       resultados: quantos acertaram, quantos "viajaram".
-- [ ] Ajustar as regras de normalização/penalidade com base nos erros
+- [X] Ajustar as regras de normalização/penalidade com base nos erros
       observados, repetindo até a taxa de acerto parecer boa o suficiente.
 
 *(Pare aqui até o matching estar confiável — só depois disso vale seguir para
@@ -131,7 +131,7 @@ a Fase 5.)*
 
 ## Fase 7 — Conversão inversa
 
-- [ ] Implementar `getPlaylistTracks` em `YoutubeMusicService` (ler playlist do
+- [X] Implementar `getPlaylistTracks` em `YoutubeMusicService` (ler playlist do
       YouTube via `playlistItems.list`).
 - [ ] Implementar `searchCandidates` em `SpotifyMusicService` (usando o
       endpoint de busca do Spotify).
@@ -140,9 +140,57 @@ a Fase 5.)*
 
 ---
 
+## Fase 8 — Interface web
+
+**Pré-requisito: Fase 6 completa.** A interface é só uma porta de entrada nova
+para o `PlaylistConverter` que já vai existir — sem o orquestrador funcionando
+via código, não tem o que a tela chamar.
+
+- [ ] Adicionar a dependência `spring-boot-starter-web` no `../pom.xml` (sobe um
+      servidor Tomcat embutido junto com a aplicação, sem precisar de outro
+      processo separado).
+- [ ] Criar um enum `ConversionDirection` com `SPOTIFY_TO_YOUTUBE` e
+      `YOUTUBE_TO_SPOTIFY`, para representar a escolha do usuário de forma
+      explícita (em vez de duas strings soltas).
+- [ ] Criar um DTO `ConversionRequest` (record) com os campos que a tela vai
+      enviar: `direction` (o enum acima), `sourcePlaylistLink` (aceita link
+      completo ou só o ID) e `destinationPlaylistName` (nome da playlist nova
+      a ser criada no destino).
+- [ ] Criar um método utilitário `extractPlaylistId(String linkOuId)` que
+      reconhece se o usuário colou uma URL completa (Spotify ou YouTube) ou só
+      o ID puro, e devolve sempre o ID — assim a tela não exige que o usuário
+      saiba extrair o ID manualmente (como você tem feito até agora).
+- [ ] Criar `PlaylistConverterController` (`@RestController`) com um endpoint
+      `POST /convert`:
+  - [ ] Recebe um `ConversionRequest` no corpo da requisição.
+  - [ ] Com base em `direction`, decide qual `MusicService` é origem e qual é
+        destino (reaproveitando a mesma lógica bidirecional da Fase 7).
+  - [ ] Chama o `PlaylistConverter.convert(...)` já existente.
+  - [ ] Devolve um `ConversionResponse` (record) com o resumo: quantas faixas
+        foram adicionadas, puladas (duplicadas) e não encontradas.
+- [ ] Criar a página em `src/main/resources/static/index.html`:
+  - [ ] Um `<select>` com as duas opções de direção (Spotify → YouTube Music /
+        YouTube Music → Spotify).
+  - [ ] Um campo de texto para colar o link (ou ID) da playlist de origem.
+  - [ ] Um campo de texto para o nome da playlist de destino.
+  - [ ] Um botão "Converter".
+  - [ ] Uma área que mostra o resultado (via JavaScript puro com `fetch()`
+        chamando `POST /convert`), incluindo estado de "carregando..." enquanto
+        a conversão roda e uma mensagem de erro clara se algo falhar.
+- [ ] Rodar `mvn spring-boot:run` e testar pelo navegador em
+      `http://localhost:8080`.
+- [ ] Validar o fluxo completo pela tela, do início ao fim, com uma playlist
+      pequena de teste.
+- [ ] **Ponto de atenção a resolver quando chegar aqui:** o login OAuth hoje
+      está pensado para CLI (abre navegador + sobe servidor local temporário
+      só para capturar o retorno). Numa página web isso precisa ser adaptado —
+      vale conversar sobre as opções nesse momento, antes de implementar.
+
+---
+
 ## Backlog (depois do MVP funcionando)
 
 - [ ] Notificação via webhook (Discord/Slack) ao final de cada execução.
 - [ ] Paralelizar as buscas de matching com `ExecutorService`/`CompletableFuture`.
-- [ ] Interface de linha de comando mais amigável (escolher playlist, direção,
-      revisar matches de baixa confiança antes de confirmar).
+- [ ] Revisão de matches de baixa confiança antes de confirmar a conversão
+      (mostrar na interface web os casos duvidosos para o usuário decidir).

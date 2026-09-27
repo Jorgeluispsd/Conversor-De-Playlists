@@ -25,7 +25,11 @@ import java.util.List;
 public class TrackMatcher {
 
     private static final List<String> UNWANTED_WORDS = List.of(
-            "cover", "live", "remix", "8d audio");
+            "cover", "live", "remix", "8d audio", "type beat", "instrumental");
+
+    private static final double MIN_CONFIDENCE = 0.5;
+    private static final double CONTAINMENT_FLOOR = 0.5;
+    private static final int HASHTAG_SPAM_THRESHOLD = 2;
 
     private final JaroWinklerSimilarity jaroWinkler = new JaroWinklerSimilarity();
 
@@ -34,6 +38,7 @@ public class TrackMatcher {
             return new MatchResult(sourceTrack, null, null, 0.0);
         }
 
+        String rawSourceTitle = sourceTrack.title().toLowerCase();
         String normalizedSourceTitle = normalizeText(sourceTrack.title());
         String normalizedSourceArtist = normalizeText(sourceTrack.artist());
 
@@ -41,15 +46,20 @@ public class TrackMatcher {
         double bestScore = 0.0;
 
         for (Track candidate : candidates) {
+
+            String rawCandidateTitle = candidate.title().toLowerCase();
             String normalizedCandidateTitle = normalizeText(candidate.title());
             String normalizedCandidateArtist = normalizeText(candidate.artist());
 
-            double titleSimilarity = jaroWinkler.apply(normalizedSourceTitle, normalizedCandidateTitle);
+            double titleSimilarity = computeTitleSimilarity(normalizedSourceTitle, normalizedCandidateTitle);
             double artistSimilarity = jaroWinkler.apply(normalizedSourceArtist, normalizedCandidateArtist);
 
-            double score = (titleSimilarity * 0.7) + (artistSimilarity * 0.3);
+            double score = (titleSimilarity * 0.6) + (artistSimilarity * 0.4);
 
-            score = applyPenalty(score, normalizedSourceTitle, normalizedCandidateTitle);
+            score = applyPenalty(score, rawSourceTitle, rawCandidateTitle);
+            score = applySpamPenalty(score, rawCandidateTitle);
+            score = applyOfficialityBonus(score, rawCandidateTitle);
+            score = Math.min(score, 1.0);
 
             if (score > bestScore) {
                 bestScore = score;
@@ -57,11 +67,21 @@ public class TrackMatcher {
             }
         }
 
-        if (bestScore < 0.5) {
+        if (bestScore < MIN_CONFIDENCE) {
             return new MatchResult(sourceTrack, null, null, 0.0);
         }
 
         return new MatchResult(sourceTrack, bestMatch.id(), bestMatch.title(), bestScore);
+    }
+
+    private double computeTitleSimilarity(String normalizedSourceTitle, String normalizedCandidateTitle) {
+
+        double rawSimilarity = jaroWinkler.apply(normalizedSourceTitle, normalizedCandidateTitle);
+
+        if (!normalizedSourceTitle.isBlank() && normalizedCandidateTitle.contains(normalizedSourceTitle))
+            return Math.max(rawSimilarity, CONTAINMENT_FLOOR);
+
+        return rawSimilarity;
     }
 
 
@@ -72,10 +92,9 @@ public class TrackMatcher {
                 .replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
 
         normalized = normalized.toLowerCase();
+        normalized = normalized.replaceAll("#[\\w]+", "");
         normalized = normalized.replaceAll("\\([^)]*\\)", "");
-        normalized = normalized.trim().replaceAll("\\s+", " ");
-
-        return normalized;
+        return normalized.trim().replaceAll("\\s+", " ");
     }
 
     private double applyPenalty(double score, String sourceTitle, String candidateTitle) {
@@ -85,5 +104,19 @@ public class TrackMatcher {
             }
         }
         return score;
+    }
+
+    private double applySpamPenalty(double score, String rawCandidateTitle) {
+
+        long hashtagCount = rawCandidateTitle.chars().filter(c -> c == '#' ).count();
+        if (hashtagCount > HASHTAG_SPAM_THRESHOLD) {
+            score *= 0.4;
+        }
+        return score;
+    }
+
+    private double applyOfficialityBonus(double score, String rawCanditdateTitle) {
+
+        return rawCanditdateTitle.contains("official") ? score * 1.15 : score;
     }
 }

@@ -1,5 +1,7 @@
 package com.jorge.playlistconverter.state;
 
+import com.jorge.playlistconverter.model.Track;
+
 import java.util.List;
 
 /**
@@ -11,7 +13,7 @@ public interface SyncStateStore {
 
     boolean isAlreadySynced(long syncJobId, String sourceTrackId);
 
-    void markSynced(long syncJobId, String sourceTrackId, String destinationId, double confidence);
+    void markSynced(long syncJobId, Track sourceTrack, String destinationId, String status, double confidence);
 
     List<String> getHistory(long syncJobId);
 }

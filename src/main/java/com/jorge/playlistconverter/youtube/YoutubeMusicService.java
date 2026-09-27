@@ -1,11 +1,14 @@
 package com.jorge.playlistconverter.youtube;
 
 import com.google.api.services.youtube.YouTube;
+import com.google.api.services.youtube.model.PlaylistItem;
+import com.google.api.services.youtube.model.PlaylistItemListResponse;
 import com.google.api.services.youtube.model.SearchListResponse;
 import com.jorge.playlistconverter.model.Track;
 import com.jorge.playlistconverter.service.MusicService;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -28,7 +31,42 @@ public class YoutubeMusicService implements MusicService {
     @Override
     public List<Track> getPlaylistTracks(String playlistId) {
         // TODO (Fase 7): usar playlistItems.list
-        throw new UnsupportedOperationException("TODO: Fase 7 (conversão inversa)");
+        try{
+            List<Track> tracks = new ArrayList<>();
+            String pageToken = null;
+
+            do{
+                YouTube.PlaylistItems.List request = youtube.playlistItems()
+                        .list(List.of("snippet"))
+                        .setPlaylistId(playlistId)
+                        .setMaxResults(50L)
+                        .setKey(apiKey);
+
+                if (pageToken != null){
+                    request.setPageToken(pageToken);
+                }
+
+                PlaylistItemListResponse response = request.execute();
+
+                for (PlaylistItem item : response.getItems()){
+                    tracks.add(new Track(
+                            item.getSnippet().getResourceId().getVideoId(),
+                            item.getSnippet().getTitle(),
+                            item.getSnippet().getVideoOwnerChannelTitle(),
+                            0
+                    ));
+                }
+
+                pageToken = response.getNextPageToken();
+
+            }while(pageToken != null);
+
+            return tracks;
+
+        }catch (IOException e){
+            throw new RuntimeException("Erro ao ler a playlist do Youtube" + playlistId, e);
+        }
+        //throw new UnsupportedOperationException("TODO: Fase 7 (conversão inversa)");
     }
 
     @Override

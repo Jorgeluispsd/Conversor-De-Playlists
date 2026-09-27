@@ -40,7 +40,7 @@ public class PlaylistConverterApplication {
                     + (dotenv.get("YOUTUBE_API_KEY") != null && !dotenv.get("YOUTUBE_API_KEY").isBlank()));
 
             // TODO (Fase 2): trocar por faixas reais vindas do SpotifyMusicService
-            Track exemplo = new Track("1", "Blinding Lights", "The Weeknd", 200000);
+            Track exemplo = new Track("1", "Procedimento", "YURI REDICOPA (DJ VINI DA ZO)", 200000);
 
             // TODO (Fase 4): trocar por candidatos reais vindos do YoutubeMusicService
             List<Track> candidatos = youtubeMusicService.searchCandidates(exemplo);
@@ -59,6 +59,14 @@ public class PlaylistConverterApplication {
                     exemplo.artist(), exemplo.title(),
                     resultado.found() ? resultado.matchedTitle() : "NÃO ENCONTRADO",
                     resultado.confidence());
+
+            System.out.println("\n ======== Testando Agora com Playlists ========");
+            /*
+            List<Track> playlist = youtubeMusicService.getPlaylistTracks("PLxRW_UC-zxu2LtJHW7zKxWuyPf4wbmNLn");
+            System.out.println("Total de faixas encontradas: " + playlist.size());
+            playlist.forEach(t -> System.out.println(t.title() + " | " + t.artist()));
+
+             */
         };
     }
 }
