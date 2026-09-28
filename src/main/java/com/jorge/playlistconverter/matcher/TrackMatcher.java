@@ -1,7 +1,7 @@
 package com.jorge.playlistconverter.matcher;
 
 import com.jorge.playlistconverter.model.MatchResult;
-import com.jorge.playlistconverter.model.Track;
+import com.jorge.playlistconverter.model.Song;
 import org.apache.commons.text.similarity.JaroWinklerSimilarity;
 
 import java.text.Normalizer;
@@ -33,19 +33,19 @@ public class TrackMatcher {
 
     private final JaroWinklerSimilarity jaroWinkler = new JaroWinklerSimilarity();
 
-    public MatchResult findBestMatch(Track sourceTrack, List<Track> candidates) {
+    public MatchResult findBestMatch(Song sourceSong, List<Song> candidates) {
         if (candidates == null || candidates.isEmpty()) {
-            return new MatchResult(sourceTrack, null, null, 0.0);
+            return new MatchResult(sourceSong, null, null, 0.0);
         }
 
-        String rawSourceTitle = sourceTrack.title().toLowerCase();
-        String normalizedSourceTitle = normalizeText(sourceTrack.title());
-        String normalizedSourceArtist = normalizeText(sourceTrack.artist());
+        String rawSourceTitle = sourceSong.title().toLowerCase();
+        String normalizedSourceTitle = normalizeText(sourceSong.title());
+        String normalizedSourceArtist = normalizeText(sourceSong.artist());
 
-        Track bestMatch = null;
+        Song bestMatch = null;
         double bestScore = 0.0;
 
-        for (Track candidate : candidates) {
+        for (Song candidate : candidates) {
 
             String rawCandidateTitle = candidate.title().toLowerCase();
             String normalizedCandidateTitle = normalizeText(candidate.title());
@@ -68,10 +68,10 @@ public class TrackMatcher {
         }
 
         if (bestScore < MIN_CONFIDENCE) {
-            return new MatchResult(sourceTrack, null, null, 0.0);
+            return new MatchResult(sourceSong, null, null, 0.0);
         }
 
-        return new MatchResult(sourceTrack, bestMatch.id(), bestMatch.title(), bestScore);
+        return new MatchResult(sourceSong, bestMatch.id(), bestMatch.title(), bestScore);
     }
 
     private double computeTitleSimilarity(String normalizedSourceTitle, String normalizedCandidateTitle) {

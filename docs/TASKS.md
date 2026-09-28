@@ -46,17 +46,35 @@ concluindo. As referências de arquivo/classe já existem no esqueleto do projet
 
 ---
 
-## Fase 2 — Listar faixas de uma playlist do Spotify
+## Fase 2 — Listar faixas de uma playlist do Spotify (abordagem híbrida)
 
+**Nota:** Para permitir leitura de playlists públicas de outros usuários e escrita no seu perfil, usamos
+dois fluxos de autenticação separados:
+- **Client Credentials Flow** (leitura): usa Client ID + Secret, acessa playlists públicas de qualquer usuário
+- **Authorization Code + PKCE** (escrita): fluxo existente da Fase 1, usado para criar playlists no seu perfil
+
+- [ ] Criar classe `com.jorge.playlistconverter.spotify.SpotifyClientCredentialsService`
+      (nova) responsável por:
+  - [ ] Configurar SpotifyApi com Client ID e Client Secret
+  - [ ] Obter token via `spotifyApi.clientCredentials()`
+  - [ ] Renovar automaticamente quando expira (~1 hora)
+- [ ] Modificar `SpotifyMusicService` para aceitar dois SpotifyApi:
+  - [ ] `readApi` (Client Credentials) para operações de leitura
+  - [ ] `writeApi` (Authorization Code) para operações de escrita
 - [ ] Em `SpotifyMusicService`, implementar `getPlaylistTracks(String playlistId)`:
-  - [ ] Chamar `spotifyApi.getPlaylistsItems(playlistId)` (ou equivalente na
-        versão 7.0.0 da lib).
+  - [ ] Usar `readApi` para chamar `getPlaylistsItems(playlistId)`
   - [ ] Tratar paginação — a API retorna no máximo 100 itens por página; repetir
         a chamada com `offset` até não haver mais itens.
-  - [ ] Mapear cada item para um `Track` (título, artista principal, duração).
-- [ ] Atualizar `PlaylistConverterApplication.run()`: trocar o `Track exemplo`
-      fixo por uma chamada real a `spotifyMusicService.getPlaylistTracks(...)`
-      usando o ID de uma playlist sua de teste.
+  - [ ] Mapear cada item para um `Song` (título, artista principal, duração).
+- [ ] Atualizar configuração Spring em `PlaylistConverterApplication`:
+  - [ ] Criar bean `spotifyReadApi` configurado para Client Credentials
+  - [ ] Criar bean `spotifyClientCredentialsService` que gerencia token de leitura
+  - [ ] Criar bean `spotifyWriteApi` configurado para Authorization Code (já existe parcialmente)
+  - [ ] Modificar bean `spotifyMusicService` para injetar ambos os APIs (readApi e writeApi)
+- [ ] Atualizar `PlaylistConverterApplication.run()`: usar
+      `spotifyClientCredentialsService` para autenticar e chamar
+      `spotifyMusicService.getPlaylistTracks(...)` usando o ID de uma playlist
+      pública de teste (de outro usuário).
 - [ ] Rodar e conferir no console se a lista impressa bate com a playlist real.
 
 ---
@@ -66,11 +84,11 @@ concluindo. As referências de arquivo/classe já existem no esqueleto do projet
 - [X] Criar projeto no Google Cloud Console, ativar a **YouTube Data API v3**,
       gerar uma **API key** (não precisa de OAuth para busca).
 - [X] Copiar a chave para `YOUTUBE_API_KEY` no `.env`.
-- [X] Em `YoutubeMusicService`, implementar `searchCandidates(Track sourceTrack)`:
-  - [X] Montar a query como `sourceTrack.artist() + " " + sourceTrack.title()`.
+- [X] Em `YoutubeMusicService`, implementar `searchCandidates(Track sourceSong)`:
+  - [X] Montar a query como `sourceSong.artist() + " " + sourceSong.title()`.
   - [X] Chamar `youtube.search().list("snippet")` com `q`, `type=video`,
         `maxResults` em torno de 5.
-  - [X] Mapear cada item do resultado para um `Track` (usando o `videoId` como
+  - [X] Mapear cada item do resultado para um `Song` (usando o `videoId` como
         `id` e o `title` retornado pelo YouTube).
 - [X] Testar isoladamente: para 2-3 músicas conhecidas, imprimir os 5
       candidatos brutos retornados (sem nenhum matching ainda) e olhar se fazem

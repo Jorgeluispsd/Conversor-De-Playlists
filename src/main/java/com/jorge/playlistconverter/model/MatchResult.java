@@ -8,7 +8,7 @@ package com.jorge.playlistconverter.model;
  * vs. candidato encontrado + confidence), antes de gravar qualquer coisa.
  */
 public record MatchResult(
-        Track sourceTrack,
+        Song sourceSong,
         String matchedId,       // null se não achou nenhum candidato
         String matchedTitle,    // título retornado pela busca, para você comparar visualmente
         double confidence       // 0.0 a 1.0 — TODO: calcular via similaridade de string (Fase 4)

@@ -1,6 +1,7 @@
 package com.jorge.playlistconverter.spotify;
 
 import com.sun.net.httpserver.HttpServer;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
@@ -19,11 +20,13 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+@Getter
 @Slf4j
 public class SpotifyAuthService {
 
     private static final int CALLBACK_PORT = 8888;
     private static final String CALLBACK_PATH = "/callback";
+    public static final String CALLBACK_URI= "http://localhost:" + CALLBACK_PORT + CALLBACK_PATH;
 
     private final SpotifyApi spotifyApi;
     private final SpotifyTokenStorage tokenStorage;

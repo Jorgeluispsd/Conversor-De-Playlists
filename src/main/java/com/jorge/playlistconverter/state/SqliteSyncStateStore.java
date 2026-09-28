@@ -1,6 +1,6 @@
 package com.jorge.playlistconverter.state;
 
-import com.jorge.playlistconverter.model.Track;
+import com.jorge.playlistconverter.model.Song;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -97,15 +97,15 @@ public class SqliteSyncStateStore implements SyncStateStore{
 
 
     @Override
-    public void markSynced(long syncJobId, Track sourceTrack, String destinationId, String status,double confidence){
+    public void markSynced(long syncJobId, Song sourceSong, String destinationId, String status, double confidence){
 
         try(Connection conn = getConnection();
             PreparedStatement pstmt = conn.prepareStatement(markSyncedSql)) {
 
             pstmt.setLong(1, syncJobId);
-            pstmt.setString(2, sourceTrack.id());
-            pstmt.setString(3, sourceTrack.title());
-            pstmt.setString(4, sourceTrack.artist());
+            pstmt.setString(2, sourceSong.id());
+            pstmt.setString(3, sourceSong.title());
+            pstmt.setString(4, sourceSong.artist());
             pstmt.setString(5, destinationId);
             pstmt.setDouble(6, confidence);
             pstmt.setString(7, status);

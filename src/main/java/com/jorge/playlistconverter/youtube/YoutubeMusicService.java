@@ -4,7 +4,7 @@ import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.PlaylistItem;
 import com.google.api.services.youtube.model.PlaylistItemListResponse;
 import com.google.api.services.youtube.model.SearchListResponse;
-import com.jorge.playlistconverter.model.Track;
+import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
 
 import java.io.IOException;
@@ -29,10 +29,10 @@ public class YoutubeMusicService implements MusicService {
     }
 
     @Override
-    public List<Track> getPlaylistTracks(String playlistId) {
+    public List<Song> getPlaylistTracks(String playlistId) {
         // TODO (Fase 7): usar playlistItems.list
         try{
-            List<Track> tracks = new ArrayList<>();
+            List<Song> songs = new ArrayList<>();
             String pageToken = null;
 
             do{
@@ -49,7 +49,7 @@ public class YoutubeMusicService implements MusicService {
                 PlaylistItemListResponse response = request.execute();
 
                 for (PlaylistItem item : response.getItems()){
-                    tracks.add(new Track(
+                    songs.add(new Song(
                             item.getSnippet().getResourceId().getVideoId(),
                             item.getSnippet().getTitle(),
                             item.getSnippet().getVideoOwnerChannelTitle(),
@@ -61,7 +61,7 @@ public class YoutubeMusicService implements MusicService {
 
             }while(pageToken != null);
 
-            return tracks;
+            return songs;
 
         }catch (IOException e){
             throw new RuntimeException("Erro ao ler a playlist do Youtube" + playlistId, e);
@@ -70,9 +70,9 @@ public class YoutubeMusicService implements MusicService {
     }
 
     @Override
-    public List<Track> searchCandidates(Track sourceTrack) {
+    public List<Song> searchCandidates(Song sourceSong) {
         // TODO (Fase 3): montar query "artista + título" e chamar youtube.search().list(...)
-        String query = sourceTrack.artist() + " " + sourceTrack.title();
+        String query = sourceSong.artist() + " " + sourceSong.title();
 
         try{
 
@@ -86,7 +86,7 @@ public class YoutubeMusicService implements MusicService {
             SearchListResponse response = request.execute();
 
             return response.getItems().stream()
-                    .map(item -> new Track(
+                    .map(item -> new Song(
                             item.getId().getVideoId(),
                             item.getSnippet().getTitle(),
                             item.getSnippet().getChannelTitle(),
@@ -114,7 +114,7 @@ public class YoutubeMusicService implements MusicService {
     }
 
     @Override
-    public List<Track> getPlaylistTracksAlreadyAdded(String playlistId) {
+    public List<Song> getPlaylistTracksAlreadyAdded(String playlistId) {
         // TODO (Fase 5)
         throw new UnsupportedOperationException("TODO: Fase 5");
     }
