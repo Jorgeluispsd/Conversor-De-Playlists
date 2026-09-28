@@ -75,13 +75,11 @@ public class PlaylistConverterApplication {
                           SpotifyMusicService spotifyMusicService){
         return args -> {
             try {
-                new SpotifyTokenStorage().delete();
-
                 System.out.println("=== Iniciando autenticação Spotify ===");
                 spotifyClientCredentialsService.ensureAuthenticated();
                 System.out.println("=== Autenticação realizada com sucesso! ===");
 
-                String playlistId = "5QHSCDdwEL8ht6SeUbSSg9";
+                String playlistId = "0ulqoAeaiNTF5YTKQ4nD9P";
 
                 System.out.println("=== Buscando faixas da playlist ===");
                 List<Song> songs = spotifyMusicService.getPlaylistTracks(playlistId);

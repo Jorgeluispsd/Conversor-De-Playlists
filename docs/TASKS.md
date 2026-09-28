@@ -53,29 +53,37 @@ dois fluxos de autenticação separados:
 - **Client Credentials Flow** (leitura): usa Client ID + Secret, acessa playlists públicas de qualquer usuário
 - **Authorization Code + PKCE** (escrita): fluxo existente da Fase 1, usado para criar playlists no seu perfil
 
-- [ ] Criar classe `com.jorge.playlistconverter.spotify.SpotifyClientCredentialsService`
+- [X] Criar classe `com.jorge.playlistconverter.spotify.SpotifyClientCredentialsService`
       (nova) responsável por:
-  - [ ] Configurar SpotifyApi com Client ID e Client Secret
-  - [ ] Obter token via `spotifyApi.clientCredentials()`
-  - [ ] Renovar automaticamente quando expira (~1 hora)
-- [ ] Modificar `SpotifyMusicService` para aceitar dois SpotifyApi:
-  - [ ] `readApi` (Client Credentials) para operações de leitura
-  - [ ] `writeApi` (Authorization Code) para operações de escrita
-- [ ] Em `SpotifyMusicService`, implementar `getPlaylistTracks(String playlistId)`:
-  - [ ] Usar `readApi` para chamar `getPlaylistsItems(playlistId)`
-  - [ ] Tratar paginação — a API retorna no máximo 100 itens por página; repetir
+  - [X] Configurar SpotifyApi com Client ID e Client Secret
+  - [X] Obter token via `spotifyApi.clientCredentials()`
+  - [X] Renovar automaticamente quando expira (~1 hora)
+- [X] Renomear `Track` para `Song` em todo o projeto para evitar conflito com a classe `Track` do Spotify
+- [X] Modificar `SpotifyMusicService` para aceitar dois SpotifyApi:
+  - [X] `readApi` (Client Credentials) para operações de leitura
+  - [X] `writeApi` (Authorization Code) para operações de escrita
+- [X] Em `SpotifyMusicService`, implementar `getPlaylistTracks(String playlistId)`:
+  - [X] Usar `readApi` para chamar `getPlaylistsItems(playlistId)`
+  - [X] Tratar paginação — a API retorna no máximo 100 itens por página; repetir
         a chamada com `offset` até não haver mais itens.
-  - [ ] Mapear cada item para um `Song` (título, artista principal, duração).
-- [ ] Atualizar configuração Spring em `PlaylistConverterApplication`:
-  - [ ] Criar bean `spotifyReadApi` configurado para Client Credentials
-  - [ ] Criar bean `spotifyClientCredentialsService` que gerencia token de leitura
-  - [ ] Criar bean `spotifyWriteApi` configurado para Authorization Code (já existe parcialmente)
-  - [ ] Modificar bean `spotifyMusicService` para injetar ambos os APIs (readApi e writeApi)
-- [ ] Atualizar `PlaylistConverterApplication.run()`: usar
+  - [X] Mapear cada item para um `Song` (título, artista principal, duração).
+  - [X] Corrigir acesso ao track usando `item.getItem()` e cast para `Track` (mudança na API 10.0.0)
+  - [X] Implementar fallback: tentar Client Credentials primeiro, se falhar usar Authorization Code
+- [X] Atualizar configuração Spring em `PlaylistConverterApplication`:
+  - [X] Criar bean `dotenv` para injetar Dotenv
+  - [X] Criar bean `spotifyReadApi` configurado para Client Credentials
+  - [X] Criar bean `spotifyClientCredentialsService` que gerencia token de leitura
+  - [X] Criar bean `spotifyWriteApi` configurado para Authorization Code
+  - [X] Modificar bean `spotifyMusicService` para injetar ambos os APIs (readApi e writeApi) e SpotifyAuthService
+- [X] Atualizar `PlaylistConverterApplication.run()`: usar
       `spotifyClientCredentialsService` para autenticar e chamar
       `spotifyMusicService.getPlaylistTracks(...)` usando o ID de uma playlist
       pública de teste (de outro usuário).
-- [ ] Rodar e conferir no console se a lista impressa bate com a playlist real.
+- [X] Rodar e conferir no console se a lista impressa bate com a playlist real.
+- [ ] Debugar erro com playlists públicas de outros usuários:
+  - [ ] Isolar o problema testando apenas Client Credentials sem fallback
+  - [ ] Verificar se o fallback está sendo ativado incorretamente
+  - [ ] Testar com playlists oficiais do Spotify (ex: Today's Top Hits)
 
 ---
 
