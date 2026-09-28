@@ -34,10 +34,10 @@ concluindo. As referências de arquivo/classe já existem no esqueleto do projet
         `spotifyApi.authorizationCodePKCERequest(...)`.
 - [X] Testar manualmente: rodar o fluxo e confirmar no console que recebeu um
       access token (não precisa usá-lo ainda).
-- [ ] Implementar tratamento para `access_token` expirado (curto prazo, ~1 hora):
+- [X] Implementar tratamento para `access_token` expirado (curto prazo, ~1 hora):
       detectar a resposta de erro do Spotify e renovar automaticamente usando
       o `refresh_token` salvo, sem exigir novo login do usuário.
-- [ ] Implementar tratamento para `refresh_token` expirado (`invalid_grant`,
+- [X] Implementar tratamento para `refresh_token` expirado (`invalid_grant`,
       acontece 6 meses após a autorização original, mudança da Spotify de
       2026): quando esse erro específico vier, descartar o token salvo e
       disparar o fluxo de login novamente (reabrir o navegador), em vez de
@@ -194,6 +194,12 @@ via código, não tem o que a tela chamar.
       está pensado para CLI (abre navegador + sobe servidor local temporário
       só para capturar o retorno). Numa página web isso precisa ser adaptado —
       vale conversar sobre as opções nesse momento, antes de implementar.
+- [ ] **Multi-tenancy:** A implementação atual é single-user (arquivo local
+      de tokens). Para múltiplos usuários, será necessário:
+      - Armazenar tokens por usuário (banco de dados em vez de arquivo local)
+      - Gerenciar múltiplas sessões simultâneas
+      - Adaptar o fluxo OAuth para web (redirect para a aplicação, não localhost)
+      - Considerar autenticação de usuários da aplicação (login/senha ou OAuth)
 
 ---
 

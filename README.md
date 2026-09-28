@@ -8,14 +8,14 @@ Ferramentas prontas como TuneMyMusic e Soundiiz resolvem esse problema, mas não
 
 ## 🚧 Status do projeto
 
-Em desenvolvimento — construído em fases, cada uma validada antes de avançar para a próxima. Confira o progresso detalhado em [`TASKS.md`](TASKS.md).
+Em desenvolvimento — construído em fases, cada uma validada antes de avançar para a próxima. Confira o progresso detalhado em [`docs/TASKS.md`](docs/TASKS.md).
 
 - [x] Setup do projeto (Maven + Spring Boot)
-- [ ] Autenticação com Spotify (OAuth)
+- [x] Autenticação com Spotify (OAuth + PKCE + persistência de refresh_token)
 - [ ] Leitura de playlists do Spotify
-- [ ] Busca de músicas equivalentes no YouTube
-- [ ] Matching e cálculo de confiança entre faixas
-- [ ] Persistência do histórico (SQLite) e prevenção de duplicatas
+- [x] Busca de músicas equivalentes no YouTube
+- [x] Matching e cálculo de confiança entre faixas
+- [x] Persistência do histórico (SQLite) e prevenção de duplicatas
 - [ ] Conversão real (Spotify → YouTube Music)
 - [ ] Conversão inversa (YouTube Music → Spotify)
 
