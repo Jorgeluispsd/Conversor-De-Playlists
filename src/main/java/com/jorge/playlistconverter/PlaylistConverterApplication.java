@@ -35,10 +35,9 @@ public class PlaylistConverterApplication {
         return args -> {
             try {
                 System.out.println("=== Iniciando autenticação Spotify ===");
-                AuthorizationCodeCredentials credentials = spotifyAuthService.login("playlist-read-private");
+                spotifyAuthService.ensureAuthenticated("playlist-read-private");
 
                 System.out.println("=== Autenticação realizada com sucesso! ===");
-                System.out.println("Expires In: " + credentials.getExpiresIn() + " segundos");
             } catch (Exception e) {
                 System.out.println("Erro ao autenticar no Spotify: " + e.getMessage());
                 e.printStackTrace();

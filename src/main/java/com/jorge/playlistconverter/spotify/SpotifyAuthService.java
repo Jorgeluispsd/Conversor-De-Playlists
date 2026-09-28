@@ -3,6 +3,7 @@ package com.jorge.playlistconverter.spotify;
 import com.sun.net.httpserver.HttpServer;
 import lombok.extern.slf4j.Slf4j;
 import se.michaelthelin.spotify.SpotifyApi;
+import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 
 import java.awt.*;
@@ -15,6 +16,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
@@ -24,14 +26,52 @@ public class SpotifyAuthService {
     private static final String CALLBACK_PATH = "/callback";
 
     private final SpotifyApi spotifyApi;
+    private final SpotifyTokenStorage tokenStorage;
 
     public SpotifyAuthService(SpotifyApi spotifyApi){
         this.spotifyApi = spotifyApi;
+        this.tokenStorage = new SpotifyTokenStorage();
+    }
+
+    public void ensureAuthenticated(String scope) throws Exception {
+        Optional<SpotifyTokenStorage.StoredToken> stored = tokenStorage.load();
+
+        if (stored.isPresent()) {
+            if (!stored.get().scope().equals(scope)) {
+                log.info("Escopo salvo ({}) difere do solicitado ({}), deletando e fazendo novo login",
+                        stored.get().scope(), scope);
+                tokenStorage.delete();
+
+            } else {
+                try {
+                    spotifyApi.setRefreshToken(stored.get().refreshToken());
+
+                    AuthorizationCodeCredentials refreshed =
+                            spotifyApi.authorizationCodePKCERefresh().build().execute();
+
+                    spotifyApi.setAccessToken(refreshed.getAccessToken());
+
+                    if (refreshed.getRefreshToken() != null) {
+                        spotifyApi.setRefreshToken(refreshed.getRefreshToken());
+                        tokenStorage.save(refreshed.getRefreshToken(), scope);
+                    }
+
+                    log.info("Sessão restaurada sem novo login");
+                    return;
+                } catch (SpotifyWebApiException e) {
+                    log.warn("Refresh token recurado pelo Spotify; Novo login necessário");
+                    tokenStorage.delete();
+                }
+            }
+        }
+
+        AuthorizationCodeCredentials credentials = login(scope);
+        tokenStorage.save(credentials.getRefreshToken(), scope);
     }
 
     public AuthorizationCodeCredentials login(String scope) throws Exception{
         log.info("Iniciando fluxo de autenticação Spotify com scope: {}", scope);
-        
+
         String codeVerifier = generateCodeVerifier();
         String codeChallenge = generateCodeChallenge(codeVerifier);
         log.debug("PKCE gerado");
@@ -52,7 +92,6 @@ public class SpotifyAuthService {
         }else{
             log.warn("Desktop não suportado (modo headless). Por favor, abra manualmente: \n{}", authorizationUri);
         }
-
 
         String code = codeFuture.get();
         log.info("Código de autorização recebido");
