@@ -19,21 +19,30 @@ concluindo. As referências de arquivo/classe já existem no esqueleto do projet
 
 ## Fase 1 — Autenticação Spotify
 
-- [ ] Criar app em https://developer.spotify.com/dashboard.
-- [ ] Em *Users Management*, adicionar seu próprio e-mail Spotify como usuário
+- [X] Criar app em https://developer.spotify.com/dashboard.
+- [X] Em *Users Management*, adicionar seu próprio e-mail Spotify como usuário
       autorizado (obrigatório em Development Mode).
-- [ ] Copiar Client ID e Client Secret para o `.env`.
-- [ ] Criar classe `com.jorge.playlistconverter.spotify.SpotifyAuthService`
+- [X] Copiar Client ID e Client Secret para o `.env`.
+- [X] Criar classe `com.jorge.playlistconverter.spotify.SpotifyAuthService`
       (nova, não existe ainda) responsável por:
-  - [ ] Montar a URL de autorização (Authorization Code + PKCE, escopo
+  - [X] Montar a URL de autorização (Authorization Code + PKCE, escopo
         `playlist-read-private`).
-  - [ ] Abrir essa URL no navegador padrão.
-  - [ ] Subir um servidor HTTP local simples (ex: `com.sun.net.httpserver.HttpServer`)
+  - [X] Abrir essa URL no navegador padrão.
+  - [X] Subir um servidor HTTP local simples (ex: `com.sun.net.httpserver.HttpServer`)
         só para capturar o `code` que o Spotify devolve no redirect.
-  - [ ] Trocar o `code` por um `access_token` + `refresh_token` via
+  - [X] Trocar o `code` por um `access_token` + `refresh_token` via
         `spotifyApi.authorizationCodePKCERequest(...)`.
-- [ ] Testar manualmente: rodar o fluxo e confirmar no console que recebeu um
+- [X] Testar manualmente: rodar o fluxo e confirmar no console que recebeu um
       access token (não precisa usá-lo ainda).
+- [ ] Implementar tratamento para `access_token` expirado (curto prazo, ~1 hora):
+      detectar a resposta de erro do Spotify e renovar automaticamente usando
+      o `refresh_token` salvo, sem exigir novo login do usuário.
+- [ ] Implementar tratamento para `refresh_token` expirado (`invalid_grant`,
+      acontece 6 meses após a autorização original, mudança da Spotify de
+      2026): quando esse erro específico vier, descartar o token salvo e
+      disparar o fluxo de login novamente (reabrir o navegador), em vez de
+      tentar renovar de novo — uma nova tentativa de refresh vai falhar do
+      mesmo jeito.
 
 ---
 
@@ -105,7 +114,7 @@ a Fase 5.)*
       `System.getProperty("user.home") + "/.playlist-converter/data.db"`).
 - [X] Implementar `isAlreadySynced`, `markSynced`, `getHistory` com
       `PreparedStatement`.
-- [] Testar manualmente: rodar duas vezes seguidas e confirmar que a segunda
+- [ ] Testar manualmente: rodar duas vezes seguidas e confirmar que a segunda
       execução reconhece as faixas já sincronizadas.
 
 ---

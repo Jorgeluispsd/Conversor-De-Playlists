@@ -14,7 +14,16 @@ import java.util.List;
 
 public class SqliteSyncStateStore implements SyncStateStore{
 
+    private static final String SCHEMA_PATH = "sql/schema.sql";
+    private static final String IS_ALREADY_SYNCED_PATH = "sql/queries/is_already_synced.sql";
+    private static final String MARK_SYNCED_PATH = "sql/queries/mark_synced.sql";
+    private static final String GET_HISTORY_PATH = "sql/queries/get_history.sql";
+
     private final String dbPath;
+
+    private final String isAlreadySyncedSql;
+    private final String markSyncedSql;
+    private final String getHistorySql;
 
     public SqliteSyncStateStore(){
         String homeDir = System.getProperty("user.home");
@@ -28,12 +37,16 @@ public class SqliteSyncStateStore implements SyncStateStore{
 
         this.dbPath = appDir.resolve("data.db").toString();
         initializeDatabase();
+
+        this.isAlreadySyncedSql = readSqlFile(IS_ALREADY_SYNCED_PATH);
+        this.markSyncedSql = readSqlFile(MARK_SYNCED_PATH);
+        this.getHistorySql = readSqlFile(GET_HISTORY_PATH);
     }
 
     private void initializeDatabase() {
-        String sql = readSqlFile("sql/schema.sql");
+        String sql = readSqlFile(SCHEMA_PATH);
 
-        try(Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
+        try(Connection conn = getConnection();
             Statement stmt = conn.createStatement()) {
 
             for (String statement : sql.split(";")) {
@@ -67,10 +80,8 @@ public class SqliteSyncStateStore implements SyncStateStore{
 
     @Override
     public boolean isAlreadySynced(long syncJobId, String sourceTrackId){
-        String sql = readSqlFile("sql/queries/is_already_synced.sql");
-
         try(Connection conn = getConnection();
-            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            PreparedStatement pstmt = conn.prepareStatement(isAlreadySyncedSql)) {
 
             pstmt.setLong(1, syncJobId);
             pstmt.setString(2, sourceTrackId);
@@ -87,11 +98,9 @@ public class SqliteSyncStateStore implements SyncStateStore{
 
     @Override
     public void markSynced(long syncJobId, Track sourceTrack, String destinationId, String status,double confidence){
-        String sql = readSqlFile("sql/queries/mark_synced.sql");
-
 
         try(Connection conn = getConnection();
-            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            PreparedStatement pstmt = conn.prepareStatement(markSyncedSql)) {
 
             pstmt.setLong(1, syncJobId);
             pstmt.setString(2, sourceTrack.id());
@@ -110,11 +119,10 @@ public class SqliteSyncStateStore implements SyncStateStore{
 
     @Override
     public List<String> getHistory(long syncJobId){
-        String sql = readSqlFile("sql/queries/get_history.sql");
         List<String> history = new ArrayList<>();
 
         try(Connection conn = getConnection();
-            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            PreparedStatement pstmt = conn.prepareStatement(getHistorySql)) {
 
             pstmt.setLong(1, syncJobId);
 

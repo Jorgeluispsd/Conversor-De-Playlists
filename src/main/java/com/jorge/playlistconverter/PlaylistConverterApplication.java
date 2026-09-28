@@ -3,12 +3,14 @@ package com.jorge.playlistconverter;
 import com.jorge.playlistconverter.matcher.TrackMatcher;
 import com.jorge.playlistconverter.model.MatchResult;
 import com.jorge.playlistconverter.model.Track;
+import com.jorge.playlistconverter.spotify.SpotifyAuthService;
 import com.jorge.playlistconverter.youtube.YoutubeMusicService;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 
 import java.util.List;
 
@@ -28,6 +30,24 @@ public class PlaylistConverterApplication {
      * Fase 3   -> buscar candidatos no YouTube para cada faixa
      * Fase 4   -> passar (faixa, candidatos) para o TrackMatcher e printar o resultado
      */
+    @Bean
+    CommandLineRunner run(SpotifyAuthService spotifyAuthService){
+        return args -> {
+            try {
+                System.out.println("=== Iniciando autenticação Spotify ===");
+                AuthorizationCodeCredentials credentials = spotifyAuthService.login("playlist-read-private");
+
+                System.out.println("=== Autenticação realizada com sucesso! ===");
+                System.out.println("Expires In: " + credentials.getExpiresIn() + " segundos");
+            } catch (Exception e) {
+                System.out.println("Erro ao autenticar no Spotify: " + e.getMessage());
+                e.printStackTrace();
+            }
+        };
+    }
+
+
+    /*
     @Bean
     CommandLineRunner run(YoutubeMusicService youtubeMusicService) {
         return args -> {
@@ -60,13 +80,12 @@ public class PlaylistConverterApplication {
                     resultado.found() ? resultado.matchedTitle() : "NÃO ENCONTRADO",
                     resultado.confidence());
 
-            System.out.println("\n ======== Testando Agora com Playlists ========");
-            /*
-            List<Track> playlist = youtubeMusicService.getPlaylistTracks("PLxRW_UC-zxu2LtJHW7zKxWuyPf4wbmNLn");
-            System.out.println("Total de faixas encontradas: " + playlist.size());
-            playlist.forEach(t -> System.out.println(t.title() + " | " + t.artist()));
+            System.out.println("\n ======== Testando Agora com Playlists =======");
 
-             */
+            //List<Track> playlist = youtubeMusicService.getPlaylistTracks("PLxRW_UC-zxu2LtJHW7zKxWuyPf4wbmNLn");
+            //System.out.println("Total de faixas encontradas: " + playlist.size());
+            //playlist.forEach(t -> System.out.println(t.title() + " | " + t.artist()));
+
         };
-    }
+        */
 }
