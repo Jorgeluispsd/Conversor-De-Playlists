@@ -16,4 +16,6 @@ public interface SyncStateStore {
     void markSynced(long syncJobId, Song sourceSong, String destinationId, String status, double confidence);
 
     List<String> getHistory(long syncJobId);
+
+    long createSyncJob(String sourcePlaylistId, String destinationPlaylistId, String direction);
 }
