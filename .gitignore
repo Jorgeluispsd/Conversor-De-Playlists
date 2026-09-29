@@ -1,6 +1,7 @@
 # Credenciais e segredos — NUNCA versionar
 .env
 *.db
+*.mv.db
 token*.json
 .playlist-converter
 
