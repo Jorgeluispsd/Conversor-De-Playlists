@@ -1,12 +1,13 @@
 package com.jorge.playlistconverter.spotify;
 
 
-import com.jorge.playlistconverter.model.Song;  // Era Track
+import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.model_objects.IPlaylistItem;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
+import se.michaelthelin.spotify.exceptions.detailed.ForbiddenException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,43 +20,28 @@ import java.util.List;
  */
 public class SpotifyMusicService implements MusicService {
 
-    private final SpotifyApi readApi;
-    private final SpotifyApi writeApi;
+
     private final SpotifyAuthService spotifyAuthService;
 
-    public SpotifyMusicService(SpotifyApi readApi, SpotifyApi writeApi, SpotifyAuthService spotifyAuthService) {
-        this.readApi = readApi;
-        this.writeApi = writeApi;
+    public SpotifyMusicService(SpotifyAuthService spotifyAuthService) {
         this.spotifyAuthService = spotifyAuthService;
     }
 
     @Override
     public List<Song> getPlaylistTracks(String playlistId) {
         try {
-            return getPlaylistTracksWithApi(playlistId, readApi);
+            spotifyAuthService.ensureAuthenticated("playlist-read-private playlist-read-collaborative");
 
-        } catch (RuntimeException e) {
-            if (e.getMessage() != null && e.getMessage().contains("Valid user authentication required")) {
-
-                try {
-                    spotifyAuthService.ensureAuthenticated("playlist-read-private");
-                    writeApi.setAccessToken(spotifyAuthService.getSpotifyApi().getAccessToken());
-                    writeApi.setRefreshToken(spotifyAuthService.getSpotifyApi().getRefreshToken());
-                    return getPlaylistTracksWithApi(playlistId, writeApi);
-
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-
-            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Falha ao autenticar no Spotify", e);
         }
+        return getPlaylistTracksWithApi(playlistId, spotifyAuthService.getSpotifyApi());
     }
 
     private List<Song> getPlaylistTracksWithApi(String playlistId, SpotifyApi api) {
         // TODO (Fase 2): spotifyApi.getPlaylistsItems(playlistId)... + paginação
         List<Song> songs = new ArrayList<>();
-        int limit = 100;
+        int limit = 50;
         int offset = 0;
 
         try{
@@ -81,7 +67,7 @@ public class SpotifyMusicService implements MusicService {
 
                             String artist = spotifyTrack.getArtists().length > 0
                                     ? spotifyTrack.getArtists()[0].getName()
-                                    : "Unkonown";
+                                    : "Unknown";
 
                             songs.add(new Song(
                                     spotifyTrack.getId(),
@@ -95,7 +81,13 @@ public class SpotifyMusicService implements MusicService {
 
                 offset += limit;
             }
-        } catch (Exception e) {
+        } catch (ForbiddenException e) {
+            throw new RuntimeException(
+                    "Não é possível acessar esta playlist. " +
+                    "O Spotify só permite acessar playlists que você criou ou nas quais é colaborador. " +
+                    "Para converter uma playlist de terceiro, você precisa salvá-la na sua biblioteca " +
+                    "ou pedir ao criador para torná-la colaborativa.", e);
+        }catch (Exception e){
             throw new RuntimeException("Erro ao buscar tracks da playlist: " + e.getMessage(), e);
         }
 

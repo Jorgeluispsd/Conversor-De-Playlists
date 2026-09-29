@@ -4,7 +4,9 @@ Ferramenta em Java para migrar playlists entre **Spotify** e **YouTube Music**, 
 
 ## 💡 Motivação
 
-Ferramentas prontas como TuneMyMusic e Soundiiz resolvem esse problema, mas não sincronizam automaticamente novas músicas adicionadas a uma playlist depois da primeira conversão — cada atualização precisa ser refeita manualmente. Este projeto nasceu dessa necessidade: converter playlists entre os dois serviços de forma incremental, adicionando apenas as músicas novas em conversões futuras.
+Este projeto nasceu de uma necessidade pessoal: em diversas ocasiões, como eventos ou encontros com amigos, eu ouvia músicas incríveis que me marcavam, mas por não ter Spotify na época, ficava limitado a apenas ouvi-las naquele momento. A solução ideal seria ter as mesmas playlists em diferentes aplicativos de música, sem o trabalho tedioso de pesquisar cada música manualmente.
+
+O objetivo é permitir uma conversão direta e eficiente de playlists entre Spotify e YouTube Music, eliminando a necessidade de reconstruir playlists do zero quando você decide mudar de plataforma de streaming ou simplesmente quer ter suas playlists favoritas disponíveis em mais de um serviço.
 
 ## 🚧 Status do projeto
 
@@ -12,7 +14,7 @@ Em desenvolvimento — construído em fases, cada uma validada antes de avançar
 
 - [x] Setup do projeto (Maven + Spring Boot)
 - [x] Autenticação com Spotify (OAuth + PKCE + persistência de refresh_token)
-- [ ] Leitura de playlists do Spotify
+- [x] Leitura de playlists do Spotify
 - [x] Busca de músicas equivalentes no YouTube
 - [x] Matching e cálculo de confiança entre faixas
 - [x] Persistência do histórico (SQLite) e prevenção de duplicatas
@@ -80,6 +82,20 @@ Antes de qualquer música ser adicionada de fato, cada faixa passa por um cálcu
 > ⚠️ **Nenhuma credencial deste projeto é distribuída publicamente.** Cada pessoa que for rodar o projeto precisa criar seu próprio app no Spotify e sua própria chave no Google Cloud — é assim que projetos open source que integram com APIs de terceiros funcionam. O `.env` nunca é commitado (veja `.gitignore`).
 
 ## 📌 Limitações conhecidas
+
+### Spotify - Restrição de acesso a playlists
+
+Devido a mudanças recentes na política do Spotify, **não é possível acessar playlists de terceiros** (mesmo que sejam públicas). O Spotify agora permite acessar apenas:
+- Playlists que você criou
+- Playlists nas quais você é colaborador
+
+Se você tentar acessar uma playlist de terceiro, receberá uma mensagem explicando a restrição. Para converter uma playlist de terceiro, você precisa:
+1. Salvar a playlist na sua biblioteca do Spotify, ou
+2. Pedir ao criador para torná-la colaborativa
+
+Esta limitação é imposta pela API do Spotify e não pode ser contornada pelo aplicativo.
+
+### Outras limitações
 
 - O Spotify limita apps em Development Mode a 5 usuários autorizados e exige conta Premium para desenvolvimento — isso afeta quem consegue testar o projeto sem passar pelo processo de extensão de quota da Spotify.
 - O matching entre faixas é baseado em similaridade de texto (título/artista); casos como remixes, covers ou versões ao vivo podem exigir revisão manual quando a confiança do match for baixa.

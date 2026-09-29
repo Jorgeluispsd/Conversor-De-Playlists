@@ -80,11 +80,6 @@ dois fluxos de autenticação separados:
       `spotifyMusicService.getPlaylistTracks(...)` usando o ID de uma playlist
       pública de teste (de outro usuário).
 - [X] Rodar e conferir no console se a lista impressa bate com a playlist real.
-- [ ] Debugar erro com playlists públicas de outros usuários:
-  - [ ] Isolar o problema testando apenas Client Credentials sem fallback
-  - [ ] Verificar se o fallback está sendo ativado incorretamente
-  - [ ] Testar com playlists oficiais do Spotify (ex: Today's Top Hits)
-
 ---
 
 ## Fase 3 — Buscar candidatos no YouTube

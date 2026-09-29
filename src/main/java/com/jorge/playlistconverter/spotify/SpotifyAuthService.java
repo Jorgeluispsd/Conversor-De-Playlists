@@ -26,7 +26,6 @@ public class SpotifyAuthService {
 
     private static final int CALLBACK_PORT = 8888;
     private static final String CALLBACK_PATH = "/callback";
-    public static final String CALLBACK_URI= "http://localhost:" + CALLBACK_PORT + CALLBACK_PATH;
 
     private final SpotifyApi spotifyApi;
     private final SpotifyTokenStorage tokenStorage;
@@ -62,7 +61,7 @@ public class SpotifyAuthService {
                     log.info("Sessão restaurada sem novo login");
                     return;
                 } catch (SpotifyWebApiException e) {
-                    log.warn("Refresh token recurado pelo Spotify; Novo login necessário");
+                    log.warn("Refresh token recusado pelo Spotify; Novo login necessário");
                     tokenStorage.delete();
                 }
             }
