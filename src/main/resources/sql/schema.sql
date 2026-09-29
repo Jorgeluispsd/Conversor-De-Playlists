@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS sync_job (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     source_playlist_id TEXT NOT NULL,
     destination_playlist_id TEXT NOT NULL,
     direction TEXT NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS sync_job (
 );
 
 CREATE TABLE IF NOT EXISTS sync_run (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     sync_job_id INTEGER NOT NULL,
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS sync_run (
     );
 
 CREATE TABLE IF NOT EXISTS synced_track (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     sync_job_id INTEGER NOT NULL,
     source_track_id TEXT NOT NULL,
     source_title TEXT,
