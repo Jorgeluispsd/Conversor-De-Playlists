@@ -13,11 +13,6 @@ import java.net.URI;
 @Configuration
 public class SpotifyClientConfig {
 
-    @Bean
-    public Dotenv dotenv(){
-        return Dotenv.configure().ignoreIfMissing().load();
-    }
-
 
     @Bean
     public SpotifyApi spotifyApi(Dotenv dotenv) {
@@ -51,4 +46,5 @@ public class SpotifyClientConfig {
     public SpotifyClientCredentialsService spotifyClientCredentialsService(SpotifyApi spotifyClientCredentialsApi){
         return new SpotifyClientCredentialsService(spotifyClientCredentialsApi);
     }
+
 }

@@ -25,8 +25,7 @@ public class YoutubeClientConfig {
     }
 
     @Bean
-    public YoutubeMusicService youtubeMusicService(YouTube youtube){
-        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+    public YoutubeMusicService youtubeMusicService(YouTube youtube, Dotenv dotenv){
         String apiKey = dotenv.get("YOUTUBE_API_KEY");
         return new YoutubeMusicService(youtube, apiKey);
     }
