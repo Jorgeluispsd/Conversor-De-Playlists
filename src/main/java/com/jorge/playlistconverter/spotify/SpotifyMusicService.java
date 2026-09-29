@@ -62,9 +62,7 @@ public class SpotifyMusicService implements MusicService {
                     if (item.getItem() != null){
                         IPlaylistItem playlistItem = item.getItem();
 
-                        if (playlistItem instanceof Track){
-                            Track spotifyTrack = (Track) playlistItem;
-
+                        if (playlistItem instanceof Track spotifyTrack ){
                             String artist = spotifyTrack.getArtists().length > 0
                                     ? spotifyTrack.getArtists()[0].getName()
                                     : "Unknown";
