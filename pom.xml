@@ -57,9 +57,9 @@
 
         <!-- Driver JDBC para SQLite (histórico de sincronizações e controle de duplicata) -->
         <dependency>
-            <groupId>org.xerial</groupId>
-            <artifactId>sqlite-jdbc</artifactId>
-            <version>3.53.4.0</version>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.2.224</version>
         </dependency>
 
         <!-- Leitura de variáveis de ambiente a partir de um arquivo .env local (credenciais fora do código) -->
