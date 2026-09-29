@@ -1,7 +1,7 @@
 package com.jorge.playlistconverter;
 
 import com.jorge.playlistconverter.model.Song;
-import com.jorge.playlistconverter.spotify.SpotifyMusicService;
+import com.jorge.playlistconverter.state.H2SyncStateStore;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -25,7 +25,7 @@ public class PlaylistConverterApplication {
      * Fase 3   -> buscar candidatos no YouTube para cada faixa
      * Fase 4   -> passar (faixa, candidatos) para o TrackMatcher e printar o resultado
      */
-
+    /*
     @Bean
     CommandLineRunner run(SpotifyMusicService spotifyMusicService){
         return args -> {
@@ -44,8 +44,40 @@ public class PlaylistConverterApplication {
         };
     }
 
+     */
 
 
+    @Bean
+    CommandLineRunner run(H2SyncStateStore syncStateStore){
+        return args -> {
+          String trackId = "test-track-123";
+
+
+            System.out.println("=== Teste 0: Criando sync_job de teste ===");
+            long syncJobId = syncStateStore.createSyncJob(
+                    "test-source-playlist", "test-destination-playlist", "SPOTIFY_TO_YOUTUBE");
+            System.out.println("sync_job criado com id: " + syncJobId);
+
+            Song testSong = new Song(trackId, "Test Song", "Test Artist", 200000);
+
+            System.out.println("=== Teste 1: Marcando faixa como sincronizada ===");
+            syncStateStore.markSynced(syncJobId, testSong, "dest-123", "success", 0.95);
+            System.out.println("Faixa marcada");
+
+            boolean isSynced = syncStateStore.isAlreadySynced(syncJobId, trackId);
+            System.out.println("Faixa já sincronizada? " + isSynced);
+
+            System.out.println("=== Teste 2: Verificando novamente ===");
+            isSynced = syncStateStore.isAlreadySynced(syncJobId, trackId);
+            System.out.println("Faixa ainda sincronizada? " + isSynced);
+
+            System.out.println("=== Teste 3: Histórico ===");
+            List<String> history = syncStateStore.getHistory(syncJobId);
+            System.out.println("Histórico: " + history);
+
+            System.out.println("=== Teste concluído com sucesso! ===");
+        };
+    }
 
 /*
     @Bean
