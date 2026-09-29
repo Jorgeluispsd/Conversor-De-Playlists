@@ -12,20 +12,22 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SqliteSyncStateStore implements SyncStateStore{
+public class H2SyncStateStore implements SyncStateStore{
 
     private static final String SCHEMA_PATH = "sql/schema.sql";
     private static final String IS_ALREADY_SYNCED_PATH = "sql/queries/is_already_synced.sql";
     private static final String MARK_SYNCED_PATH = "sql/queries/mark_synced.sql";
     private static final String GET_HISTORY_PATH = "sql/queries/get_history.sql";
+    private static final String CREATE_SYNC_JOB_PATH = "sql/queries/create_sync_job.sql";
 
     private final String dbPath;
 
     private final String isAlreadySyncedSql;
     private final String markSyncedSql;
     private final String getHistorySql;
+    private final String createSyncJobSql;
 
-    public SqliteSyncStateStore(){
+    public H2SyncStateStore(){
         String homeDir = System.getProperty("user.home");
         Path appDir = Paths.get(homeDir, ".playlist-converter");
 
@@ -41,6 +43,7 @@ public class SqliteSyncStateStore implements SyncStateStore{
         this.isAlreadySyncedSql = readSqlFile(IS_ALREADY_SYNCED_PATH);
         this.markSyncedSql = readSqlFile(MARK_SYNCED_PATH);
         this.getHistorySql = readSqlFile(GET_HISTORY_PATH);
+        this.createSyncJobSql = readSqlFile(CREATE_SYNC_JOB_PATH);
     }
 
     private void initializeDatabase() {
@@ -75,7 +78,29 @@ public class SqliteSyncStateStore implements SyncStateStore{
     }
 
     private Connection getConnection() throws SQLException {
-        return DriverManager.getConnection("jdbc:sqlite:" + dbPath);
+        return DriverManager.getConnection("jdbc:h2:" + dbPath);
+    }
+
+    @Override
+    public long createSyncJob(String sourcePlaylistId, String destinationPlaylistId, String direction){
+        try(Connection conn = getConnection();
+            PreparedStatement pstmt = conn.prepareStatement(createSyncJobSql, Statement.RETURN_GENERATED_KEYS)) {
+
+            pstmt.setString(1, sourcePlaylistId);
+            pstmt.setString(2, destinationPlaylistId);
+            pstmt.setString(3, direction);
+            pstmt.executeUpdate();
+
+            try(ResultSet keys = pstmt.getGeneratedKeys()) {
+                if (keys.next()){
+                    return keys.getLong(1);
+                }
+                throw new SQLException("Nenhum ID gerado para o novo sync_job");
+            }
+
+        }catch (SQLException e) {
+            throw new RuntimeException("Erro ao criar sync_job", e);
+        }
     }
 
     @Override
@@ -88,8 +113,8 @@ public class SqliteSyncStateStore implements SyncStateStore{
 
             try(ResultSet rs = pstmt.executeQuery()) {
                 return rs.next() && rs.getInt(1) > 0;
-            }
 
+            }
         }catch (SQLException e) {
             throw new RuntimeException("Erro ao verificar se a faixa já foi sincronizada", e);
         }
