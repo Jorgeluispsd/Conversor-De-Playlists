@@ -128,14 +128,14 @@ a Fase 5.)*
 
 ## Fase 5 — Persistência (SQLite)
 
-- [X] Criar classe `SqliteSyncStateStore` implementando `SyncStateStore`.
+- [X] Criar classe `H2SyncStateStore` implementando `SyncStateStore`.
 - [X] Criar método de inicialização que roda os `CREATE TABLE IF NOT EXISTS`
       (`sync_job`, `sync_run`, `synced_track`) na primeira execução.
 - [X] Definir onde o arquivo `.db` fica salvo (sugestão:
       `System.getProperty("user.home") + "/.playlist-converter/data.db"`).
 - [X] Implementar `isAlreadySynced`, `markSynced`, `getHistory` com
       `PreparedStatement`.
-- [ ] Testar manualmente: rodar duas vezes seguidas e confirmar que a segunda
+- [X] Testar manualmente: rodar duas vezes seguidas e confirmar que a segunda
       execução reconhece as faixas já sincronizadas.
 
 ---
