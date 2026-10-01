@@ -17,7 +17,7 @@ Em desenvolvimento — construído em fases, cada uma validada antes de avançar
 - [x] Leitura de playlists do Spotify
 - [x] Busca de músicas equivalentes no YouTube
 - [x] Matching e cálculo de confiança entre faixas
-- [x] Persistência do histórico (SQLite) e prevenção de duplicatas
+- [x] Persistência do histórico (H2) e prevenção de duplicatas
 - [ ] Conversão real (Spotify → YouTube Music)
 - [ ] Conversão inversa (YouTube Music → Spotify)
 
@@ -31,7 +31,7 @@ service/     -> MusicService — contrato comum entre Spotify e YouTube
 spotify/     -> implementação do lado Spotify
 youtube/     -> implementação do lado YouTube
 matcher/     -> lógica de similaridade para encontrar a música equivalente
-state/       -> histórico de sincronizações e controle de duplicata (SQLite)
+state/       -> histórico de sincronizações e controle de duplicata (H2)
 config/      -> configuração dos clientes de API (injeção de dependência via Spring)
 ```
 
@@ -39,17 +39,17 @@ Antes de qualquer música ser adicionada de fato, cada faixa passa por um cálcu
 
 ## 🛠️ Tecnologias
 
-- Java 17 + Spring Boot
+- Java 21 + Spring Boot
 - [spotify-web-api-java](https://github.com/spotify-web-api-java/spotify-web-api-java) — cliente para a Spotify Web API
 - [google-api-services-youtube](https://developers.google.com/youtube/v3) — cliente oficial para a YouTube Data API v3
-- SQLite (via `sqlite-jdbc`) — histórico local de sincronizações
+- H2 Database — histórico local de sincronizações e prevenção de duplicatas
 - Maven
 
 ## 🚀 Como rodar localmente
 
 ### Pré-requisitos
 
-- Java 17+
+- Java 21+
 - Maven
 - Conta Spotify **Premium** (exigido pelo Development Mode da Spotify para acesso à API)
 - Conta Google (para gerar uma chave da YouTube Data API v3)

@@ -126,7 +126,7 @@ a Fase 5.)*
 
 ---
 
-## Fase 5 — Persistência (SQLite)
+## Fase 5 — Persistência (H2)
 
 - [X] Criar classe `H2SyncStateStore` implementando `SyncStateStore`.
 - [X] Criar método de inicialização que roda os `CREATE TABLE IF NOT EXISTS`
