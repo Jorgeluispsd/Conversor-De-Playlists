@@ -19,6 +19,7 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.time.Instant;
 
 @Getter
 @Slf4j
@@ -26,9 +27,13 @@ public class SpotifyAuthService {
 
     private static final int CALLBACK_PORT = 8888;
     private static final String CALLBACK_PATH = "/callback";
+    private static final long TOKEN_EXPIRATION_MARGIN_SECONDS = 60;
 
     private final SpotifyApi spotifyApi;
     private final SpotifyTokenStorage tokenStorage;
+
+    private Instant accessTokenExpirationAt;
+    private String activeScope;
 
     public SpotifyAuthService(SpotifyApi spotifyApi){
         this.spotifyApi = spotifyApi;
@@ -36,6 +41,15 @@ public class SpotifyAuthService {
     }
 
     public void ensureAuthenticated(String scope) throws Exception {
+        if (scope ==  null || scope.isBlank())
+            throw new IllegalArgumentException("O escopo não pode ser nulo ou vazio"
+            );
+
+        if (hasValidAccessToken(scope)){
+            log.debug("Reutilizando access token válido");
+            return;
+        }
+
         Optional<SpotifyTokenStorage.StoredToken> stored = tokenStorage.load();
 
         if (stored.isPresent()) {
@@ -51,10 +65,10 @@ public class SpotifyAuthService {
                     AuthorizationCodeCredentials refreshed =
                             spotifyApi.authorizationCodePKCERefresh().build().execute();
 
-                    spotifyApi.setAccessToken(refreshed.getAccessToken());
+                    applyCredentials(refreshed, scope);
 
-                    if (refreshed.getRefreshToken() != null) {
-                        spotifyApi.setRefreshToken(refreshed.getRefreshToken());
+                    if (refreshed.getRefreshToken() != null
+                            && !refreshed.getRefreshToken().isBlank()) {
                         tokenStorage.save(refreshed.getRefreshToken(), scope);
                     }
 
@@ -69,6 +83,16 @@ public class SpotifyAuthService {
 
         AuthorizationCodeCredentials credentials = login(scope);
         tokenStorage.save(credentials.getRefreshToken(), scope);
+    }
+
+    private boolean hasValidAccessToken(String requestedScope){
+        String accessToken = spotifyApi.getAccessToken();
+
+        return accessToken != null
+                && !accessToken.isBlank()
+                &&accessTokenExpirationAt != null
+                &&Instant.now().isBefore(accessTokenExpirationAt)
+                &&requestedScope.equals(activeScope);
     }
 
     public AuthorizationCodeCredentials login(String scope) throws Exception{
@@ -103,11 +127,31 @@ public class SpotifyAuthService {
                 .build()
                 .execute();
 
-        spotifyApi.setAccessToken(credentials.getAccessToken());
-        spotifyApi.setRefreshToken(credentials.getRefreshToken());
+        applyCredentials(credentials, scope);
 
         log.info("Autenticação concluída com sucesso! Access token expira em {} segundos", credentials.getExpiresIn());
         return credentials;
+    }
+
+    private void applyCredentials(
+            AuthorizationCodeCredentials credentials,
+            String scope
+    ){
+        spotifyApi.setAccessToken(credentials.getAccessToken());
+
+        if (credentials.getRefreshToken() != null
+                && !credentials.getRefreshToken().isBlank()){
+            spotifyApi.setRefreshToken(credentials.getRefreshToken());
+        }
+
+        long usableSeconds = Math.max(
+                0L,
+                credentials.getExpiresIn().longValue() - TOKEN_EXPIRATION_MARGIN_SECONDS
+        );
+
+        accessTokenExpirationAt = Instant.now().plusSeconds(usableSeconds);
+
+        activeScope = scope;
     }
 
     private CompletableFuture<String> startCallbackServer() throws IOException{
