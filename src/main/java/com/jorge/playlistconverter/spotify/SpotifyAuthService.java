@@ -20,6 +20,9 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Getter
 @Slf4j
@@ -53,9 +56,10 @@ public class SpotifyAuthService {
         Optional<SpotifyTokenStorage.StoredToken> stored = tokenStorage.load();
 
         if (stored.isPresent()) {
-            if (!stored.get().scope().equals(scope)) {
+            if (!hasRequiredScopes(stored.get().scope(), scope)) {
                 log.info("Escopo salvo ({}) difere do solicitado ({}), deletando e fazendo novo login",
                         stored.get().scope(), scope);
+
                 tokenStorage.delete();
 
             } else {
@@ -65,11 +69,13 @@ public class SpotifyAuthService {
                     AuthorizationCodeCredentials refreshed =
                             spotifyApi.authorizationCodePKCERefresh().build().execute();
 
-                    applyCredentials(refreshed, scope);
+                    String storedScope = stored.get().scope();
+
+                    applyCredentials(refreshed, storedScope);
 
                     if (refreshed.getRefreshToken() != null
                             && !refreshed.getRefreshToken().isBlank()) {
-                        tokenStorage.save(refreshed.getRefreshToken(), scope);
+                        tokenStorage.save(refreshed.getRefreshToken(), storedScope);
                     }
 
                     log.info("Sessão restaurada sem novo login");
@@ -90,9 +96,9 @@ public class SpotifyAuthService {
 
         return accessToken != null
                 && !accessToken.isBlank()
-                &&accessTokenExpirationAt != null
-                &&Instant.now().isBefore(accessTokenExpirationAt)
-                &&requestedScope.equals(activeScope);
+                && accessTokenExpirationAt != null
+                && Instant.now().isBefore(accessTokenExpirationAt)
+                && hasRequiredScopes(activeScope, requestedScope);
     }
 
     public AuthorizationCodeCredentials login(String scope) throws Exception{
@@ -211,5 +217,25 @@ public class SpotifyAuthService {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(codeVerifier.getBytes(StandardCharsets.US_ASCII));
         return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+    }
+
+    private Set<String> parseScopes(String scope){
+        if (scope == null || scope.isBlank()){
+            return Set.of();
+        }
+
+        return Arrays.stream(scope.trim().split("\\s+"))
+                .collect(Collectors.toSet());
+    }
+
+    private boolean hasRequiredScopes(
+            String availableScope,
+            String requestedScope
+    ){
+        Set<String> availableScopes = parseScopes(availableScope);
+        Set<String> requestedScopes = parseScopes(requestedScope);
+
+        return !requestedScopes.isEmpty()
+                && availableScopes.containsAll(requestedScopes);
     }
 }

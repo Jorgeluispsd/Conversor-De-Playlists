@@ -1,7 +1,7 @@
 package com.jorge.playlistconverter;
 
 import com.jorge.playlistconverter.model.Song;
-import com.jorge.playlistconverter.state.H2SyncStateStore;
+import com.jorge.playlistconverter.spotify.SpotifyMusicService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -25,28 +25,48 @@ public class PlaylistConverterApplication {
      * Fase 3   -> buscar candidatos no YouTube para cada faixa
      * Fase 4   -> passar (faixa, candidatos) para o TrackMatcher e printar o resultado
      */
-    /*
     @Bean
     CommandLineRunner run(SpotifyMusicService spotifyMusicService){
         return args -> {
             try {
-                String playlistId = "5qPmMsnb0mdQItWT1dpi34";
+                String playlistId = "0ulqoAeaiNTF5YTKQ4nD9P";
 
+
+                System.out.println("=== Primeira leitura ===");
+
+                List<Song> songs =
+                        spotifyMusicService.getPlaylistTracks(playlistId);
+
+                System.out.println("Total de faixas: " + songs.size());
+
+                System.out.println("\n=== Segunda leitura ===");
+
+                List<Song> songsAgain =
+                        spotifyMusicService.getPlaylistTracks(playlistId);
+
+                System.out.println("Total de faixas: " + songsAgain.size());
+
+                /*
                 System.out.println("=== Buscando faixas da playlist ===");
                 List<Song> songs = spotifyMusicService.getPlaylistTracks(playlistId);
 
                 System.out.println("\nTotal de faixas: " + songs.size());
                 songs.forEach(song -> System.out.println("- " + song.title() + " - " + song.artist()));
 
+                 */
+
             } catch (Exception e) {
-                System.out.println("Erro ao autenticar no Spotify: " + e.getMessage());
+                System.out.println("Erro durante o teste: " + e.getMessage());
+
+                e.printStackTrace();
             }
         };
     }
 
-     */
 
 
+
+    /*
     @Bean
     CommandLineRunner run(H2SyncStateStore syncStateStore){
         return args -> {
@@ -78,6 +98,8 @@ public class PlaylistConverterApplication {
             System.out.println("=== Teste concluído com sucesso! ===");
         };
     }
+
+     */
 
 /*
     @Bean
@@ -114,12 +136,14 @@ public class PlaylistConverterApplication {
 
             System.out.println("\n ======== Testando Agora com Playlists =======");
 
-            List<Song> playlist = youtubeMusicService.getPlaylistTracks("PLmPTTeBNAhNd-whcB70IN1bL7tr4N5hBu");
+            List<Song> playlist = youtubeMusicService.getPlaylistTracks("PLNifpA8xogw8LxEb5dW5-_qX1uk9n0FMv");
             System.out.println("Total de faixas encontradas: " + playlist.size());
             playlist.forEach(t -> System.out.println(t.title() + " | " + t.artist()));
 
         };
     }
 
-*/
+
+ */
+
 }
