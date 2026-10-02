@@ -186,7 +186,7 @@ public class SpotifyAuthService {
                     e.getCause());
 
         }finally {
-            callback.server.stop(1);
+            callback.server().stop(1);
             log.debug("Servidor callback encerrado");
         }
     }
@@ -380,6 +380,7 @@ public class SpotifyAuthService {
     public String generateCodeChallenge(String codeVerifier) throws NoSuchAlgorithmException{
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(codeVerifier.getBytes(StandardCharsets.US_ASCII));
+
         return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
     }
 
@@ -401,5 +402,10 @@ public class SpotifyAuthService {
 
         return !requestedScopes.isEmpty()
                 && availableScopes.containsAll(requestedScopes);
+    }
+
+    public void invalidateAccessToken(){
+        spotifyApi.setAccessToken(null);
+        accessTokenExpirationAt = null;
     }
 }
