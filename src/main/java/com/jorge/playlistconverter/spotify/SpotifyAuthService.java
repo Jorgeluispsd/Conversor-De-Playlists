@@ -1,11 +1,14 @@
 package com.jorge.playlistconverter.spotify;
 
+import com.jorge.playlistconverter.enums.CallbackStatus;
 import com.sun.net.httpserver.HttpServer;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
+import se.michaelthelin.spotify.exceptions.detailed.BadRequestException;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
+import com.sun.net.httpserver.HttpExchange;
 
 import java.awt.*;
 import java.io.IOException;
@@ -16,13 +19,14 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.Base64;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Set;
 import java.util.stream.Collectors;
+import java.net.URLDecoder;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Getter
 @Slf4j
@@ -31,6 +35,11 @@ public class SpotifyAuthService {
     private static final int CALLBACK_PORT = 8888;
     private static final String CALLBACK_PATH = "/callback";
     private static final long TOKEN_EXPIRATION_MARGIN_SECONDS = 60;
+    private static final long LOGIN_TIMEOUT_SECONDS = 180;
+    private static final int HTTP_OK = 200;
+    private static final int HTTP_BAD_REQUEST = 400;
+    private static final int HTTP_NOT_FOUND = 404;
+    private static final int HTTP_METHOD_NOT_ALLOWED = 405;
 
     private final SpotifyApi spotifyApi;
     private final SpotifyTokenStorage tokenStorage;
@@ -81,8 +90,24 @@ public class SpotifyAuthService {
                     log.info("Sessão restaurada sem novo login");
                     return;
                 } catch (SpotifyWebApiException e) {
-                    log.warn("Refresh token recusado pelo Spotify; Novo login necessário");
+                    if (!isInvalidRefreshToken(e)){
+                        log.warn("Falha na renovação Spotify; token salvo preservado. Tipo: {}",
+                                e.getClass().getSimpleName()
+                        );
+
+                        throw e;
+
+                    }
+
+                    log.warn("Refresh token inválido; Removendo sessão salva e solicitando novo login");
+
                     tokenStorage.delete();
+
+
+                    spotifyApi.setAccessToken(null);
+                    spotifyApi.setRefreshToken(null);
+                    accessTokenExpirationAt = null;
+                    activeScope = null;
                 }
             }
         }
@@ -106,37 +131,64 @@ public class SpotifyAuthService {
 
         String codeVerifier = generateCodeVerifier();
         String codeChallenge = generateCodeChallenge(codeVerifier);
+        String state = generateState();
         log.debug("PKCE gerado");
 
-        URI authorizationUri = spotifyApi.authorizationCodePKCEUri(codeChallenge)
+        URI authorizationUri = spotifyApi
+                .authorizationCodePKCEUri(codeChallenge)
                 .scope(scope)
+                .state(state)
                 .show_dialog(true)
                 .build()
                 .execute();
-        log.info("URL de autorização: {}", authorizationUri);
 
-        CompletableFuture<String> codeFuture = startCallbackServer();
-        log.info("Servidor callback iniciado na porta {}", CALLBACK_PORT);
+        CallbackSession callback = startCallbackServer(state);
 
-        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {;
-            Desktop.getDesktop().browse(authorizationUri);
-            log.info("Navegador aberto. Aguardando autorização do usuário...");
-        }else{
-            log.warn("Desktop não suportado (modo headless). Por favor, abra manualmente: \n{}", authorizationUri);
+        try {
+            log.info("Servidor callback iniciado na porta {}", CALLBACK_PORT);
+
+            if (Desktop.isDesktopSupported()
+                    && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {;
+                Desktop.getDesktop().browse(authorizationUri);
+                log.info("Navegador aberto. Aguardando autorização do usuário...");
+            }else{
+                log.info("Abra está URL no navegador: \n{}", authorizationUri);
+            }
+
+            String code = callback.codeFuture().get(
+                    LOGIN_TIMEOUT_SECONDS, TimeUnit.SECONDS
+            );
+
+            AuthorizationCodeCredentials credentials = spotifyApi
+                    .authorizationCodePKCE(code, codeVerifier)
+                    .build()
+                    .execute();
+
+            applyCredentials(credentials, scope);
+
+            log.info("Autenticação concluída com sucesso! Access token expira em {} segundos",
+                    credentials.getExpiresIn());
+
+            return credentials;
+
+
+        } catch (TimeoutException e) {
+            throw new IllegalStateException(
+                    "Tempo de autorização esgotado. Inicie uma nova tentativa.", e);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw e;
+
+        }catch (ExecutionException e){
+            throw new IllegalStateException(
+                    "Falha no Callback de autorização do Spotify",
+                    e.getCause());
+
+        }finally {
+            callback.server.stop(1);
+            log.debug("Servidor callback encerrado");
         }
-
-        String code = codeFuture.get();
-        log.info("Código de autorização recebido");
-
-        AuthorizationCodeCredentials credentials = spotifyApi.
-                authorizationCodePKCE(code, codeVerifier)
-                .build()
-                .execute();
-
-        applyCredentials(credentials, scope);
-
-        log.info("Autenticação concluída com sucesso! Access token expira em {} segundos", credentials.getExpiresIn());
-        return credentials;
     }
 
     private void applyCredentials(
@@ -160,47 +212,159 @@ public class SpotifyAuthService {
         activeScope = scope;
     }
 
-    private CompletableFuture<String> startCallbackServer() throws IOException{
+    private boolean isInvalidRefreshToken(SpotifyWebApiException exception){
+        if (!(exception instanceof BadRequestException)){
+            return false;
+        }
+
+        String message = exception.getMessage();
+        return message != null
+                && message.toLowerCase(Locale.ROOT)
+                .contains("invalid_grant");
+    }
+
+    private record CallbackSession(HttpServer server,
+                                   CompletableFuture<String> codeFuture
+    ){
+    }
+
+    private record CallbackResult(CallbackStatus status, String code, String error
+    ){
+    }
+
+    private CallbackResult classifyCallback(HttpExchange exchange, String expectedState){
+        String path = exchange.getRequestURI().getPath();
+        String query = exchange.getRequestURI().getRawQuery();
+
+        String receivedState = extractParam(query, "state");
+        String error = extractParam(query , "error");
+        String code = extractParam(query, "code");
+
+        CallbackStatus status = switch (path){
+            case String p when !CALLBACK_PATH.equals(p) ->
+                    CallbackStatus.INVALID_PATH;
+
+            case String p when !"GET".equals(exchange.getRequestMethod()) ->
+                    CallbackStatus.INVALID_METHOD;
+
+            case String p when !expectedState.equals(receivedState) ->
+                    CallbackStatus.INVALID_STATE;
+
+            case String p when error != null ->
+                CallbackStatus.AUTHORIZATION_DENIED;
+
+            case String p when code == null || code.isBlank() ->
+                CallbackStatus.MISSING_CODE;
+
+            default -> CallbackStatus.SUCCESS;
+        };
+
+        return new CallbackResult(status, code, error);
+    }
+
+    private String generateState(){
+        byte[] bytes = new byte[32];
+        new SecureRandom().nextBytes(bytes);
+
+        return Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(bytes);
+    }
+
+    private void sendCallbackResponse(HttpExchange exchange, int status, String message) throws IOException{
+        byte[] body = message.getBytes(StandardCharsets.UTF_8);
+
+        exchange.getResponseHeaders().set(
+                "Content-Type", "text/plain; charset=UTF-8"
+        );
+
+        exchange.sendResponseHeaders(status, body.length);
+
+        try (OutputStream output = exchange.getResponseBody()) {
+            output.write(body);
+        }
+    }
+
+    private CallbackSession startCallbackServer(String expectedState) throws IOException{
         CompletableFuture<String> future = new CompletableFuture<>();
-        HttpServer server = HttpServer.create(new InetSocketAddress(CALLBACK_PORT), 0);
+
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1",
+                CALLBACK_PORT), 0);
 
         server.createContext(CALLBACK_PATH, exchange -> {
-            String code = extractParam(exchange.getRequestURI().getQuery(), "code");
 
-            String response = code != null
-                    ? "Login concluído! Pode fechar esta aba e voltar ao terminal."
-                    : "Falha na autorização. Pode fechar esta aba.";
+                    try {
+                        CallbackResult result = classifyCallback(exchange, expectedState);
 
-            exchange.sendResponseHeaders(200, response.getBytes(StandardCharsets.UTF_8).length);
+                        switch (result.status()) {
+                            case INVALID_PATH -> sendCallbackResponse(exchange, HTTP_NOT_FOUND,
+                                    "Caminho não encontrado");
 
-            try(OutputStream os = exchange.getResponseBody()) {
-                os.write(response.getBytes(StandardCharsets.UTF_8));
-            }
+                            case INVALID_METHOD -> sendCallbackResponse(exchange, HTTP_METHOD_NOT_ALLOWED,
+                                    "Método não permitido");
 
-            if (code != null){
-                log.debug("Código capturado no callback");
-                future.complete(code);
-            }else {
-                log.error("Autorização negada ou código ausente no callback");
-                future.completeExceptionally(new RuntimeException("Autorização negada ou código ausente"));
-            }
+                            case INVALID_STATE -> {
+                                sendCallbackResponse(exchange, HTTP_BAD_REQUEST,
+                                        "Retorno inválido: state não corresponde ao login iniciado.");
 
-            server.stop(1);
-            log.debug("Servidor callback parado");
-        });
+                                log.warn("Callback recebido com state inválido");
+                            }
 
-        server.start();
-        return future;
+                            case AUTHORIZATION_DENIED -> {
+                                sendCallbackResponse(exchange, HTTP_BAD_REQUEST,
+                                        "Autorização não concluida. Volte ao terminal.");
+
+                                future.completeExceptionally(new IllegalStateException(
+                                        "Spotify não autorizou o acesso: " + result.error()));
+                            }
+
+                            case MISSING_CODE -> {
+                                sendCallbackResponse(exchange, HTTP_BAD_REQUEST,
+                                        "Código de autorização ausente.");
+
+                                future.completeExceptionally(new IllegalStateException(
+                                        "Callback sem código de autorização"));
+                            }
+
+                            case SUCCESS -> {
+                                sendCallbackResponse(exchange, HTTP_OK,
+                                        "Autorização recebida. Volte ao terminal para acompanhar o resultado.");
+
+                                future.complete(result.code());
+                            }
+                        }
+
+                    } catch (Exception e) {
+                        future.completeExceptionally(e);
+
+                    } finally {
+                        exchange.close();
+                    }
+                });
+
+            server.start();
+
+            return new CallbackSession(server, future);
     }
 
 
     private String extractParam(String query, String key){
-        if (query == null) return null;
+        if (query == null || query.isBlank()){
+            return null;
+        }
 
         for (String pair : query.split("&")){
             String[] parts = pair.split("=", 2);
-            if (parts.length == 2 && parts[0].equals(key)){
-                return parts[1];
+
+            String name = URLDecoder.decode(
+                    parts[0], StandardCharsets.UTF_8
+            );
+
+            if (name.equals(key)){
+                return parts.length == 2 ? URLDecoder.decode(
+                        parts[1],
+                        StandardCharsets.UTF_8)
+                        : "";
             }
         }
         return null;

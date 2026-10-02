@@ -81,8 +81,13 @@ public class SpotifyTokenStorage {
     private void restrictPermissions(){
         try {
             Files.setPosixFilePermissions(tokensFilePath, PosixFilePermissions.fromString("rw-------"));
-        }catch (UnsupportedOperationException | IOException e){
-            log.warn("Permissões POSIX indisponíveis neste sistema");
+
+        }catch (UnsupportedOperationException e){
+            log.debug("Sistema sem suporte a permissões POSIX;" +
+                    "mantidas as permissões nativas do arquivo");
+
+        } catch (IOException e) {
+            log.warn("Não foi possivel restringir as permissões do arquivo de tokens", e);
         }
     }
 }
