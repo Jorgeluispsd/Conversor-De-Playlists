@@ -187,4 +187,13 @@ public class H2SyncStateStore implements SyncStateStore{
             throw new RuntimeException("Erro ao buscar trabalho de sincronização", e);
         }
     }
+
+    @Override
+    public synchronized long getOrCreateSyncJob(String sourcePlaylistId, String destinationPlaylistId, String direction){
+        OptionalLong existing = findSyncJob(sourcePlaylistId, destinationPlaylistId, direction);
+
+        return existing.isPresent()
+                ? existing.getAsLong()
+                : createSyncJob(sourcePlaylistId, destinationPlaylistId, direction);
+    }
 }

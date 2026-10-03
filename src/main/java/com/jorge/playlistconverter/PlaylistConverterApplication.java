@@ -106,6 +106,7 @@ public class PlaylistConverterApplication {
 
      */
 
+    /*
     @Bean
     CommandLineRunner run(H2SyncStateStore store){
         return args -> {
@@ -134,6 +135,40 @@ public class PlaylistConverterApplication {
             System.out.println("Outro destiono: " + differentDestination);
         };
     }
+     */
+
+    @Bean
+    CommandLineRunner runner(H2SyncStateStore store){
+        return args -> {
+            String sourceId = "h2-teste-source-lookup";
+            String destinationId = "h2-teste-destination-lookup";
+            String direction = "SPOTIFY_TO_YOUTUBE";
+
+            long firstId = store.getOrCreateSyncJob(sourceId, destinationId, direction);
+
+            long secondId = store.getOrCreateSyncJob(sourceId, destinationId, direction);
+
+            System.out.println("Primeiro ID: " + firstId);
+            System.out.println("Segundo ID: " + secondId);
+            System.out.println("Mesmo ID? " + (firstId == secondId));
+
+            Song failedSong = new Song("h2-test-failed-track", "Faixa de teste com falha",
+                    "Artista de teste", 200000);
+
+            store.markSynced(firstId, failedSong, "h2-test-destination-track", "failed", 0.9);
+
+            System.out.println("Registro com falha conta como sincronizado? " +
+                    store.isAlreadySynced(firstId, failedSong.id()));
+
+            store.markSynced(firstId, failedSong, "h2-test-destination-track", "success", 0.9);
+
+            System.out.println("Após sucesso conta como sincronizado? " +
+                    store.isAlreadySynced(firstId, failedSong.id()));
+        };
+    }
+
+
+
 
 /*
     @Bean

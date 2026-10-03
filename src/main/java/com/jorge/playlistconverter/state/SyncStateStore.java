@@ -20,4 +20,6 @@ public interface SyncStateStore {
     long createSyncJob(String sourcePlaylistId, String destinationPlaylistId, String direction);
 
     OptionalLong findSyncJob(String sourcePlaylistId, String destinationPlaylistId, String direction);
+
+    long getOrCreateSyncJob(String sourcePlaylistId, String destinationPlaylistId, String direction);
 }

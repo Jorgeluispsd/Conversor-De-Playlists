@@ -4,6 +4,7 @@
 *.mv.db
 token*.json
 .playlist-converter
+spotify_tokens*.json
 
 # Build
 target/
