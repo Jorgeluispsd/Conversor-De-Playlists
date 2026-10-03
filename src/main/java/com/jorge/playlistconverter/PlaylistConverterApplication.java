@@ -2,12 +2,14 @@ package com.jorge.playlistconverter;
 
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.spotify.SpotifyMusicService;
+import com.jorge.playlistconverter.state.H2SyncStateStore;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
 import java.util.List;
+import java.util.OptionalLong;
 
 @SpringBootApplication
 public class PlaylistConverterApplication {
@@ -25,6 +27,7 @@ public class PlaylistConverterApplication {
      * Fase 3   -> buscar candidatos no YouTube para cada faixa
      * Fase 4   -> passar (faixa, candidatos) para o TrackMatcher e printar o resultado
      */
+    /*
     @Bean
     CommandLineRunner run(SpotifyMusicService spotifyMusicService){
         return args -> {
@@ -46,14 +49,14 @@ public class PlaylistConverterApplication {
 
                 System.out.println("Total de faixas: " + songsAgain.size());
 
-                /*
+
                 System.out.println("=== Buscando faixas da playlist ===");
                 List<Song> songs = spotifyMusicService.getPlaylistTracks(playlistId);
 
                 System.out.println("\nTotal de faixas: " + songs.size());
                 songs.forEach(song -> System.out.println("- " + song.title() + " - " + song.artist()));
 
-                 */
+
 
             } catch (Exception e) {
                 System.out.println("Erro durante o teste: " + e.getMessage());
@@ -64,6 +67,8 @@ public class PlaylistConverterApplication {
     }
 
 
+
+     */
 
 
     /*
@@ -100,6 +105,35 @@ public class PlaylistConverterApplication {
     }
 
      */
+
+    @Bean
+    CommandLineRunner run(H2SyncStateStore store){
+        return args -> {
+            String sourceId = "h2-teste-source-lookup";
+            String destinationId = "h2-teste-destination-lookup";
+            String direction = "SPOTIFY_TO_YOUTUBE";
+
+            OptionalLong existing = store.findSyncJob(sourceId, destinationId, direction);
+
+            System.out.println("Consulta inicial: " + existing);
+
+            long jobID = existing.isPresent()
+                    ? existing.getAsLong()
+                    : store.createSyncJob(sourceId, destinationId, direction);
+
+            OptionalLong found = store.findSyncJob(sourceId, destinationId, direction);
+
+            System.out.println("ID utilizado: " + jobID);
+            System.out.println("ID recuperado: " + found);
+
+            System.out.println("Mesmo ID? " + (found.isPresent() && found.getAsLong() == jobID));
+
+            OptionalLong differentDestination = store.findSyncJob(
+                    sourceId, "h2-test-other-destination-lookup", direction);
+
+            System.out.println("Outro destiono: " + differentDestination);
+        };
+    }
 
 /*
     @Bean

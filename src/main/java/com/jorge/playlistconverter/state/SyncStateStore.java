@@ -1,7 +1,7 @@
 package com.jorge.playlistconverter.state;
 
 import com.jorge.playlistconverter.model.Song;
-
+import java.util.OptionalLong;
 import java.util.List;
 
 /**
@@ -18,4 +18,6 @@ public interface SyncStateStore {
     List<String> getHistory(long syncJobId);
 
     long createSyncJob(String sourcePlaylistId, String destinationPlaylistId, String direction);
+
+    OptionalLong findSyncJob(String sourcePlaylistId, String destinationPlaylistId, String direction);
 }

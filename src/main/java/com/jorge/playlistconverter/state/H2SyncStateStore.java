@@ -1,7 +1,7 @@
 package com.jorge.playlistconverter.state;
 
 import com.jorge.playlistconverter.model.Song;
-
+import java.util.OptionalLong;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -19,6 +19,7 @@ public class H2SyncStateStore implements SyncStateStore{
     private static final String MARK_SYNCED_PATH = "sql/queries/mark_synced.sql";
     private static final String GET_HISTORY_PATH = "sql/queries/get_history.sql";
     private static final String CREATE_SYNC_JOB_PATH = "sql/queries/create_sync_job.sql";
+    private static final String FIND_SYNC_JOB_PATH = "sql/queries/find_sync_job.sql";
 
     private final String dbPath;
 
@@ -26,6 +27,7 @@ public class H2SyncStateStore implements SyncStateStore{
     private final String markSyncedSql;
     private final String getHistorySql;
     private final String createSyncJobSql;
+    private final String findSyncJobSql;
 
     public H2SyncStateStore(){
         String homeDir = System.getProperty("user.home");
@@ -44,6 +46,7 @@ public class H2SyncStateStore implements SyncStateStore{
         this.markSyncedSql = readSqlFile(MARK_SYNCED_PATH);
         this.getHistorySql = readSqlFile(GET_HISTORY_PATH);
         this.createSyncJobSql = readSqlFile(CREATE_SYNC_JOB_PATH);
+        this.findSyncJobSql = readSqlFile(FIND_SYNC_JOB_PATH);
     }
 
     private void initializeDatabase() {
@@ -162,5 +165,26 @@ public class H2SyncStateStore implements SyncStateStore{
         }
 
         return history;
+    }
+
+    @Override
+    public OptionalLong findSyncJob(String sourcePlaylistId, String destinationPlaylistId, String direction){
+        try (Connection conn = getConnection();
+        PreparedStatement statement = conn.prepareStatement(findSyncJobSql)){
+
+            statement.setString(1, sourcePlaylistId);
+            statement.setString(2, destinationPlaylistId);
+            statement.setString(3, direction);
+
+            try (ResultSet result = statement.executeQuery()) {
+
+                return result.next()
+                        ? OptionalLong.of(result.getLong("id"))
+                        : OptionalLong.empty();
+            }
+
+        }catch (SQLException e){
+            throw new RuntimeException("Erro ao buscar trabalho de sincronização", e);
+        }
     }
 }
