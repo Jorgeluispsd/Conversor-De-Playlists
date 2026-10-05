@@ -22,4 +22,8 @@ public interface SyncStateStore {
     OptionalLong findSyncJob(String sourcePlaylistId, String destinationPlaylistId, String direction);
 
     long getOrCreateSyncJob(String sourcePlaylistId, String destinationPlaylistId, String direction);
+
+    long startSyncRun(long syncJobId);
+
+    void finishSyncRun(long syncRunId);
 }

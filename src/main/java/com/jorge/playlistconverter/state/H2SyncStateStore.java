@@ -20,6 +20,8 @@ public class H2SyncStateStore implements SyncStateStore{
     private static final String GET_HISTORY_PATH = "sql/queries/get_history.sql";
     private static final String CREATE_SYNC_JOB_PATH = "sql/queries/create_sync_job.sql";
     private static final String FIND_SYNC_JOB_PATH = "sql/queries/find_sync_job.sql";
+    private static final String START_SYNC_RUN_PATH = "sql/queries/start_sync_run.sql";
+    private static final String FINISH_SYNC_RUN_PATH = "sql/queries/finish_sync_run.sql";
 
     private final String dbPath;
 
@@ -28,6 +30,8 @@ public class H2SyncStateStore implements SyncStateStore{
     private final String getHistorySql;
     private final String createSyncJobSql;
     private final String findSyncJobSql;
+    private final String startSyncRunSql;
+    private final String finishSyncRunSql;
 
     public H2SyncStateStore(){
         String homeDir = System.getProperty("user.home");
@@ -47,6 +51,8 @@ public class H2SyncStateStore implements SyncStateStore{
         this.getHistorySql = readSqlFile(GET_HISTORY_PATH);
         this.createSyncJobSql = readSqlFile(CREATE_SYNC_JOB_PATH);
         this.findSyncJobSql = readSqlFile(FIND_SYNC_JOB_PATH);
+        this.startSyncRunSql = readSqlFile(START_SYNC_RUN_PATH);
+        this.finishSyncRunSql = readSqlFile(FINISH_SYNC_RUN_PATH);
     }
 
     private void initializeDatabase() {
@@ -211,5 +217,46 @@ public class H2SyncStateStore implements SyncStateStore{
     private boolean isDuplicatedKey(RuntimeException exception){
         return exception.getCause() instanceof SQLException sqlException
                 && "23505".equals(sqlException.getSQLState());
+    }
+
+    @Override
+    public long startSyncRun(long syncJobId){
+        try(Connection conn = getConnection();
+            PreparedStatement pstmt = conn.prepareStatement(startSyncRunSql, Statement.RETURN_GENERATED_KEYS)) {
+
+            pstmt.setLong(1, syncJobId);
+            pstmt.executeUpdate();
+
+            try(ResultSet keys = pstmt.getGeneratedKeys()) {
+                if (keys.next()){
+                    return keys.getLong(1);
+                }
+
+                throw new SQLException("Nenhum Id gerado para o sync_run");
+            }
+
+        }catch (SQLException e){
+            throw new RuntimeException("Erro ao iniciar execução de sincronização", e);
+        }
+    }
+
+    @Override
+    public void finishSyncRun(long syncRunId){
+        try(Connection conn = getConnection();
+            PreparedStatement pstmt = conn.prepareStatement(finishSyncRunSql)) {
+
+            pstmt.setLong(1, syncRunId);
+
+            int updatedRows = pstmt.executeUpdate();
+
+            if (updatedRows == 0){
+                throw new IllegalStateException(
+                        "Execução inexistente ou já finalizada" + syncRunId
+                );
+            }
+
+        }catch (SQLException e){
+            throw new RuntimeException("Erro ao finalizar execução de sincronização", e);
+        }
     }
 }

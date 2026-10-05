@@ -173,7 +173,7 @@ public class PlaylistConverterApplication {
     }
 
      */
-
+/*
     @Bean
     CommandLineRunner runner(H2SyncStateStore store) {
         return args -> {
@@ -218,6 +218,31 @@ public class PlaylistConverterApplication {
             }
         };
     }
+
+ */
+
+    @Bean
+    CommandLineRunner runner(H2SyncStateStore store){
+        return args -> {
+            long jobId = store.getOrCreateSyncJob(
+                    "h2-test-run-source-2",
+                    "h2-test-run-destination",
+                    "SPOTIFY_TO_YOUTUBE");
+
+            long runId = store.startSyncRun(jobId);
+
+            System.out.println("ID da relação: " + jobId);
+            System.out.println("ID da execução: " + runId);
+
+            store.finishSyncRun(runId);
+
+            System.out.println("Execução finalizada");
+        };
+    }
+
+
+
+
 /*
     @Bean
     CommandLineRunner run(YoutubeMusicService youtubeMusicService) {
