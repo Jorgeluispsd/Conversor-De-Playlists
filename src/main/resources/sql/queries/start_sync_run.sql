@@ -1,2 +1,2 @@
-INSERT INTO sync_run (sync_job_id)
-VALUES (?);
+INSERT INTO sync_run (sync_job_id, status)
+VALUES (?, 'RUNNING');

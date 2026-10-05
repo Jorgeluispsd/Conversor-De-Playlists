@@ -1,5 +1,6 @@
 package com.jorge.playlistconverter;
 
+import com.jorge.playlistconverter.enums.SyncRunStatus;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.spotify.SpotifyMusicService;
 import com.jorge.playlistconverter.state.H2SyncStateStore;
@@ -229,14 +230,45 @@ public class PlaylistConverterApplication {
                     "h2-test-run-destination",
                     "SPOTIFY_TO_YOUTUBE");
 
-            long runId = store.startSyncRun(jobId);
 
-            System.out.println("ID da relação: " + jobId);
-            System.out.println("ID da execução: " + runId);
+            long finishedRunId = store.startSyncRun(jobId);
 
-            store.finishSyncRun(runId);
 
-            System.out.println("Execução finalizada");
+            store.finishSyncRun(finishedRunId, SyncRunStatus.SUCCESS);
+
+            try {
+                store.finishSyncRun(finishedRunId, SyncRunStatus.FAILED);
+
+                throw new AssertionError("O método permitiu finalizar duas vezes");
+
+            }catch (IllegalStateException e){
+                System.out.println("Segunda finalização rejeitada " + e.getMessage());
+            }
+
+
+            long openRunId = store.startSyncRun(jobId);
+
+            try {
+                store.finishSyncRun(openRunId, SyncRunStatus.RUNNING);
+
+                throw new AssertionError("O método aceitou RUNNING como resultado");
+
+            } catch (IllegalArgumentException e) {
+                System.out.println("RUNNING REJEITADO " + e.getMessage());
+            }
+
+            try {
+                store.finishSyncRun(openRunId, null);
+
+                throw new AssertionError("O método aceitou um status nulo");
+
+            } catch (NullPointerException e) {
+                System.out.println("Status nulo rejeitado " + e.getMessage());
+            }
+
+
+            System.out.println("ID já finalizado: " + finishedRunId);
+            System.out.println("ID ainda aberto: " + openRunId);
         };
     }
 

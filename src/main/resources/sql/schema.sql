@@ -35,3 +35,13 @@ ALTER TABLE sync_job
     destination_playlist_id,
     direction
     );
+
+ALTER TABLE sync_run
+    ADD COLUMN IF NOT EXISTS status VARCHAR(20);
+
+ALTER TABLE sync_run
+    ADD CONSTRAINT IF NOT EXISTS ck_sync_run_status
+    CHECK (
+    status IS NULL
+    OR status IN ('RUNNING', 'SUCCESS', 'FAILED')
+    );

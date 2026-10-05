@@ -1,6 +1,9 @@
 package com.jorge.playlistconverter.state;
 
+import com.jorge.playlistconverter.enums.SyncRunStatus;
 import com.jorge.playlistconverter.model.Song;
+
+import java.util.Objects;
 import java.util.OptionalLong;
 import java.io.IOException;
 import java.io.InputStream;
@@ -195,7 +198,7 @@ public class H2SyncStateStore implements SyncStateStore{
     }
 
     @Override
-    public synchronized long getOrCreateSyncJob(String sourcePlaylistId, String destinationPlaylistId, String direction){
+    public long getOrCreateSyncJob(String sourcePlaylistId, String destinationPlaylistId, String direction){
         OptionalLong existing = findSyncJob(sourcePlaylistId, destinationPlaylistId, direction);
 
         if(existing.isPresent()){
@@ -241,22 +244,31 @@ public class H2SyncStateStore implements SyncStateStore{
     }
 
     @Override
-    public void finishSyncRun(long syncRunId){
+    public void finishSyncRun(long syncRunId,
+                              SyncRunStatus status){
+
+        Objects.requireNonNull(status, "O status da execução não pode ser nulo");
+
+        if (status == SyncRunStatus.RUNNING){
+            throw new IllegalArgumentException("Para finalizar, informe SUCCESS ou FAILED");
+        }
+
         try(Connection conn = getConnection();
             PreparedStatement pstmt = conn.prepareStatement(finishSyncRunSql)) {
 
-            pstmt.setLong(1, syncRunId);
+            pstmt.setString(1, status.name());
+            pstmt.setLong(2, syncRunId);
 
             int updatedRows = pstmt.executeUpdate();
 
             if (updatedRows == 0){
                 throw new IllegalStateException(
-                        "Execução inexistente ou já finalizada" + syncRunId
+                        "Execução inexistente ou já finalizada: " + syncRunId
                 );
             }
 
         }catch (SQLException e){
-            throw new RuntimeException("Erro ao finalizar execução de sincronização", e);
+            throw new RuntimeException("Erro ao finalizar execução de sincronização: ", e);
         }
     }
 }
