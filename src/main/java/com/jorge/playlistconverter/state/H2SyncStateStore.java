@@ -192,8 +192,24 @@ public class H2SyncStateStore implements SyncStateStore{
     public synchronized long getOrCreateSyncJob(String sourcePlaylistId, String destinationPlaylistId, String direction){
         OptionalLong existing = findSyncJob(sourcePlaylistId, destinationPlaylistId, direction);
 
-        return existing.isPresent()
-                ? existing.getAsLong()
-                : createSyncJob(sourcePlaylistId, destinationPlaylistId, direction);
+        if(existing.isPresent()){
+            return existing.getAsLong();
+        }
+
+        try {
+            return createSyncJob(sourcePlaylistId, destinationPlaylistId, direction);
+        }catch (RuntimeException e){
+            if (!isDuplicatedKey(e)){
+                throw e;
+            }
+
+            return findSyncJob(sourcePlaylistId, destinationPlaylistId, direction)
+                    .orElseThrow(() -> e);
+        }
+    }
+
+    private boolean isDuplicatedKey(RuntimeException exception){
+        return exception.getCause() instanceof SQLException sqlException
+                && "23505".equals(sqlException.getSQLState());
     }
 }

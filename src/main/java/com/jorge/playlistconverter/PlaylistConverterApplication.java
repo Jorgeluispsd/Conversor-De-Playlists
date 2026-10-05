@@ -10,6 +10,10 @@ import org.springframework.context.annotation.Bean;
 
 import java.util.List;
 import java.util.OptionalLong;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @SpringBootApplication
 public class PlaylistConverterApplication {
@@ -137,6 +141,7 @@ public class PlaylistConverterApplication {
     }
      */
 
+    /*
     @Bean
     CommandLineRunner runner(H2SyncStateStore store){
         return args -> {
@@ -167,9 +172,52 @@ public class PlaylistConverterApplication {
         };
     }
 
+     */
 
+    @Bean
+    CommandLineRunner runner(H2SyncStateStore store) {
+        return args -> {
 
+            String sourcePlaylistId = "h2-concurrency-" + UUID.randomUUID();
+            String destinationPlaylistId = "h2-concurrency-destination";
+            String direction = "SPOTIFY_TO_YOUTUBE";
 
+            CountDownLatch ready = new CountDownLatch(2);
+            CountDownLatch start = new CountDownLatch(1);
+
+            try (var executor = Executors.newFixedThreadPool(2)) {
+                var first = executor.submit(() -> {
+                    ready.countDown();
+                    start.await();
+
+                    return store.getOrCreateSyncJob(sourcePlaylistId, destinationPlaylistId, direction);
+                });
+
+                var second = executor.submit(() -> {
+                    ready.countDown();
+                    start.await();
+
+                    return store.getOrCreateSyncJob(sourcePlaylistId, destinationPlaylistId, direction);
+                });
+
+                boolean bothReady = ready.await(5, TimeUnit.SECONDS);
+
+                start.countDown();
+
+                if (!bothReady) {
+                    throw new IllegalStateException("As duas tarefas não ficaram prontas a tempo");
+                }
+
+                long firstId = first.get(15, TimeUnit.SECONDS);
+                long secondId = second.get(15, TimeUnit.SECONDS);
+
+                System.out.println("Origem utilizada: " + sourcePlaylistId);
+                System.out.println("ID da primeira chamada: " + firstId);
+                System.out.println("ID da segunda chamada: " + secondId);
+                System.out.println("Mesmo ID? " + (firstId == secondId));
+            }
+        };
+    }
 /*
     @Bean
     CommandLineRunner run(YoutubeMusicService youtubeMusicService) {

@@ -27,3 +27,11 @@ CREATE TABLE IF NOT EXISTS synced_track (
     FOREIGN KEY (sync_job_id) REFERENCES sync_job(id),
     UNIQUE(sync_job_id, source_track_id)
     );
+
+ALTER TABLE sync_job
+    ADD CONSTRAINT IF NOT EXISTS uq_sync_job_relation
+    UNIQUE (
+    source_playlist_id,
+    destination_playlist_id,
+    direction
+    );
