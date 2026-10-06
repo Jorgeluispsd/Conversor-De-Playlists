@@ -1,9 +1,13 @@
 package com.jorge.playlistconverter;
 
 import com.jorge.playlistconverter.enums.SyncRunStatus;
+import com.jorge.playlistconverter.matcher.TrackMatcher;
+import com.jorge.playlistconverter.model.MatchResult;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.spotify.SpotifyMusicService;
 import com.jorge.playlistconverter.state.H2SyncStateStore;
+import com.jorge.playlistconverter.youtube.YoutubeMusicService;
+import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -222,6 +226,7 @@ public class PlaylistConverterApplication {
 
  */
 
+    /*
     @Bean
     CommandLineRunner runner(H2SyncStateStore store){
         return args -> {
@@ -271,11 +276,10 @@ public class PlaylistConverterApplication {
             System.out.println("ID ainda aberto: " + openRunId);
         };
     }
+    */
 
 
 
-
-/*
     @Bean
     CommandLineRunner run(YoutubeMusicService youtubeMusicService) {
         return args -> {
@@ -308,16 +312,13 @@ public class PlaylistConverterApplication {
                     resultado.found() ? resultado.matchedTitle() : "NÃO ENCONTRADO",
                     resultado.confidence());
 
-            System.out.println("\n ======== Testando Agora com Playlists =======");
+            //System.out.println("\n ======== Testando Agora com Playlists =======");
 
-            List<Song> playlist = youtubeMusicService.getPlaylistTracks("PLNifpA8xogw8LxEb5dW5-_qX1uk9n0FMv");
-            System.out.println("Total de faixas encontradas: " + playlist.size());
-            playlist.forEach(t -> System.out.println(t.title() + " | " + t.artist()));
+            //List<Song> playlist = youtubeMusicService.getPlaylistTracks("PLNifpA8xogw8LxEb5dW5-_qX1uk9n0FMv");
+            //System.out.println("Total de faixas encontradas: " + playlist.size());
+            //playlist.forEach(t -> System.out.println(t.title() + " | " + t.artist()));
 
         };
     }
-
-
- */
 
 }
