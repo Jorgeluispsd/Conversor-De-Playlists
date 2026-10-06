@@ -114,8 +114,8 @@ dois fluxos de autenticação separados:
   - [X] Retornar o candidato de maior score como `MatchResult`.
 - [X] Atualizar `PlaylistConverterApplication.run()` para, em vez de uma faixa
       só, iterar por todas as faixas da playlist de teste:
-  - [X] Para cada uma: buscar candidatos no YouTube, rodar o `TrackMatcher`,
-        imprimir `origem -> candidato encontrado -> confiança`.
+  - [X] Para cada uma: buscar candidatos no YouTube, rodar o `TrackMatcherTest`,
+    imprimir `origem -> candidato encontrado -> confiança`.
 - [X] Rodar contra uma playlist real (ex: a do DJ) e revisar visualmente os
       resultados: quantos acertaram, quantos "viajaram".
 - [X] Ajustar as regras de normalização/penalidade com base nos erros

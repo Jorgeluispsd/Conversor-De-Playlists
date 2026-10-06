@@ -55,7 +55,7 @@
             <version>1.39.0</version>
         </dependency>
 
-        <!-- Driver JDBC para SQLite (histórico de sincronizações e controle de duplicata) -->
+        <!-- Driver JDBC para H2 (histórico de sincronizações e controle de duplicata) -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>

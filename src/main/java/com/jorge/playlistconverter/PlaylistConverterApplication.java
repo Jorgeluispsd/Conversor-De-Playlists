@@ -226,7 +226,7 @@ public class PlaylistConverterApplication {
     CommandLineRunner runner(H2SyncStateStore store){
         return args -> {
             long jobId = store.getOrCreateSyncJob(
-                    "h2-test-run-source-2",
+                    "h2-test-run-source-5",
                     "h2-test-run-destination",
                     "SPOTIFY_TO_YOUTUBE");
 
