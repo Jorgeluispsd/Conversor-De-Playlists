@@ -115,8 +115,8 @@ public class TrackMatcher {
         return score;
     }
 
-    private double applyOfficialityBonus(double score, String rawCanditdateTitle) {
+    private double applyOfficialityBonus(double score, String rawCandidateTitle) {
 
-        return rawCanditdateTitle.contains("official") ? score * 1.15 : score;
+        return rawCandidateTitle.contains("official") ? score * 1.15 : score;
     }
 }
