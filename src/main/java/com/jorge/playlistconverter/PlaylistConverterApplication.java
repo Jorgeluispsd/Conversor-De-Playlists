@@ -292,7 +292,7 @@ public class PlaylistConverterApplication {
                     + (dotenv.get("YOUTUBE_API_KEY") != null && !dotenv.get("YOUTUBE_API_KEY").isBlank()));
 
             // TODO (Fase 2): trocar por faixas reais vindas do SpotifyMusicService
-            Song exemplo = new Song("1", "Surto", "Realygust", 200000);
+            Song exemplo = new Song("1", "Numb", "Linkin Park", 185_000);
 
             // TODO (Fase 4): trocar por candidatos reais vindos do YoutubeMusicService
             List<Song> candidatos = youtubeMusicService.searchCandidates(exemplo);
