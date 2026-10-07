@@ -1,4 +1,4 @@
-package com.jorge.playlistconverter.enums;
+package com.jorge.playlistconverter.spotify.callback;
 
 public enum CallbackStatus {
     INVALID_PATH,

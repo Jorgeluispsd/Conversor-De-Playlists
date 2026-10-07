@@ -1,6 +1,6 @@
 package com.jorge.playlistconverter.spotify;
 
-import com.jorge.playlistconverter.enums.CallbackStatus;
+import com.jorge.playlistconverter.spotify.callback.CallbackStatus;
 import com.sun.net.httpserver.HttpServer;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
