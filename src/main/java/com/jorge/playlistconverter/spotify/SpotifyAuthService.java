@@ -1,5 +1,6 @@
 package com.jorge.playlistconverter.spotify;
 
+import com.jorge.playlistconverter.spotify.authorization.SpotifyAuthorizationGenerator;
 import com.jorge.playlistconverter.spotify.callback.CallbackSession;
 import com.jorge.playlistconverter.spotify.callback.SpotifyCallbackServer;
 import lombok.Getter;
@@ -11,12 +12,11 @@ import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCrede
 
 import java.awt.*;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -33,13 +33,16 @@ public class SpotifyAuthService {
     private final SpotifyApi spotifyApi;
     private final SpotifyCallbackServer callbackServer;
     private final SpotifyTokenStorage tokenStorage;
+    private final SpotifyAuthorizationGenerator authorizationGenerator;
 
     private Instant accessTokenExpirationAt;
     private String activeScope;
 
-    public SpotifyAuthService(SpotifyApi spotifyApi, SpotifyCallbackServer callbackServer){
+    public SpotifyAuthService(SpotifyApi spotifyApi, SpotifyCallbackServer callbackServer,
+                              SpotifyAuthorizationGenerator authorizationGenerator){
         this.spotifyApi = spotifyApi;
         this.callbackServer = callbackServer;
+        this.authorizationGenerator = authorizationGenerator;
         this.tokenStorage = new SpotifyTokenStorage();
     }
 
@@ -120,9 +123,9 @@ public class SpotifyAuthService {
     public AuthorizationCodeCredentials login(String scope) throws Exception{
         log.info("Iniciando fluxo de autenticação Spotify com scope: {}", scope);
 
-        String codeVerifier = generateCodeVerifier();
-        String codeChallenge = generateCodeChallenge(codeVerifier);
-        String state = generateState();
+        String codeVerifier = authorizationGenerator.generateCodeVerifier();
+        String codeChallenge = authorizationGenerator.generateCodeChallenge(codeVerifier);
+        String state = authorizationGenerator.generateState();
         log.debug("PKCE gerado");
 
         URI authorizationUri = spotifyApi
@@ -214,28 +217,6 @@ public class SpotifyAuthService {
                 .contains("invalid_grant");
     }
 
-    private String generateState(){
-        byte[] bytes = new byte[32];
-        new SecureRandom().nextBytes(bytes);
-
-        return Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(bytes);
-    }
-
-
-    private String generateCodeVerifier(){
-        byte[] bytes = new byte[32];
-        new SecureRandom().nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    public String generateCodeChallenge(String codeVerifier) throws NoSuchAlgorithmException{
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] hash = digest.digest(codeVerifier.getBytes(StandardCharsets.US_ASCII));
-
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
-    }
 
     private Set<String> parseScopes(String scope){
         if (scope == null || scope.isBlank()){
