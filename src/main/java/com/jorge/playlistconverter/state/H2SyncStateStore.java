@@ -7,8 +7,6 @@ import com.jorge.playlistconverter.state.sql.SqlResourceLoader;
 import java.util.Objects;
 import java.util.OptionalLong;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -78,20 +76,6 @@ public class H2SyncStateStore implements SyncStateStore{
         }
     }
 
-
-    private String readSqlFile(String resourcePath){
-
-        try(InputStream inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
-            if (inputStream == null){
-                throw new RuntimeException("Arquivo SQL não encontrado" + resourcePath);
-            }
-
-            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-
-        } catch (IOException e) {
-            throw new RuntimeException("Erro ao ler arquivo de SQL"+ resourcePath, e);
-        }
-    }
 
     private Connection getConnection() throws SQLException {
         return DriverManager.getConnection("jdbc:h2:" + dbPath);
