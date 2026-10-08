@@ -3,6 +3,7 @@ package com.jorge.playlistconverter.config;
 import com.jorge.playlistconverter.spotify.SpotifyAuthService;
 import com.jorge.playlistconverter.spotify.SpotifyClientCredentialsService;
 import com.jorge.playlistconverter.spotify.SpotifyMusicService;
+import com.jorge.playlistconverter.spotify.callback.SpotifyCallbackServer;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,8 +25,9 @@ public class SpotifyClientConfig {
     }
 
     @Bean
-    public SpotifyAuthService spotifyAuthService(SpotifyApi spotifyApi) {
-        return new SpotifyAuthService(spotifyApi);
+    public SpotifyAuthService spotifyAuthService(SpotifyApi spotifyApi,
+                                                 SpotifyCallbackServer spotifyCallbackServer) {
+        return new SpotifyAuthService(spotifyApi, spotifyCallbackServer);
     }
 
 
@@ -45,6 +47,11 @@ public class SpotifyClientConfig {
     @Bean
     public SpotifyClientCredentialsService spotifyClientCredentialsService(SpotifyApi spotifyClientCredentialsApi){
         return new SpotifyClientCredentialsService(spotifyClientCredentialsApi);
+    }
+
+    @Bean
+    public SpotifyCallbackServer spotifyCallbackServer(){
+        return new SpotifyCallbackServer();
     }
 
 }

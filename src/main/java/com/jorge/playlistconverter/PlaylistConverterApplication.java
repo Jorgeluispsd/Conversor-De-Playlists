@@ -4,7 +4,9 @@ import com.jorge.playlistconverter.enums.SyncRunStatus;
 import com.jorge.playlistconverter.matcher.TrackMatcher;
 import com.jorge.playlistconverter.model.MatchResult;
 import com.jorge.playlistconverter.model.Song;
+import com.jorge.playlistconverter.spotify.SpotifyAuthService;
 import com.jorge.playlistconverter.spotify.SpotifyMusicService;
+import com.jorge.playlistconverter.spotify.callback.SpotifyCallbackServer;
 import com.jorge.playlistconverter.state.H2SyncStateStore;
 import com.jorge.playlistconverter.youtube.YoutubeMusicService;
 import io.github.cdimascio.dotenv.Dotenv;
@@ -36,7 +38,7 @@ public class PlaylistConverterApplication {
      * Fase 3   -> buscar candidatos no YouTube para cada faixa
      * Fase 4   -> passar (faixa, candidatos) para o TrackMatcher e printar o resultado
      */
-    /*
+
     @Bean
     CommandLineRunner run(SpotifyMusicService spotifyMusicService){
         return args -> {
@@ -59,12 +61,11 @@ public class PlaylistConverterApplication {
                 System.out.println("Total de faixas: " + songsAgain.size());
 
 
-                System.out.println("=== Buscando faixas da playlist ===");
-                List<Song> songs = spotifyMusicService.getPlaylistTracks(playlistId);
+                System.out.println("\n=== Faixas da primeira leitura ===");
 
-                System.out.println("\nTotal de faixas: " + songs.size());
-                songs.forEach(song -> System.out.println("- " + song.title() + " - " + song.artist()));
-
+                songs.forEach(song -> System.out.println(
+                        "- " + song.title() + " - " + song.artist()
+                ));
 
 
             } catch (Exception e) {
@@ -77,7 +78,7 @@ public class PlaylistConverterApplication {
 
 
 
-     */
+
 
 
     /*
@@ -279,7 +280,7 @@ public class PlaylistConverterApplication {
     */
 
 
-
+ /*
     @Bean
     CommandLineRunner run(YoutubeMusicService youtubeMusicService) {
         return args -> {
@@ -320,5 +321,6 @@ public class PlaylistConverterApplication {
 
         };
     }
+    */
 
 }

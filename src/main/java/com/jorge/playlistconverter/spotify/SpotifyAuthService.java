@@ -1,6 +1,7 @@
 package com.jorge.playlistconverter.spotify;
 
 import com.jorge.playlistconverter.spotify.callback.CallbackStatus;
+import com.jorge.playlistconverter.spotify.callback.SpotifyCallbackServer;
 import com.sun.net.httpserver.HttpServer;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -42,13 +43,15 @@ public class SpotifyAuthService {
     private static final int HTTP_METHOD_NOT_ALLOWED = 405;
 
     private final SpotifyApi spotifyApi;
+    private final SpotifyCallbackServer callbackServer;
     private final SpotifyTokenStorage tokenStorage;
 
     private Instant accessTokenExpirationAt;
     private String activeScope;
 
-    public SpotifyAuthService(SpotifyApi spotifyApi){
+    public SpotifyAuthService(SpotifyApi spotifyApi, SpotifyCallbackServer callbackServer){
         this.spotifyApi = spotifyApi;
+        this.callbackServer = callbackServer;
         this.tokenStorage = new SpotifyTokenStorage();
     }
 
@@ -142,7 +145,7 @@ public class SpotifyAuthService {
                 .build()
                 .execute();
 
-        CallbackSession callback = startCallbackServer(state);
+        var callback = callbackServer.start(state);
 
         try {
             log.info("Servidor callback iniciado na porta {}", CALLBACK_PORT);
