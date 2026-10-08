@@ -22,15 +22,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-@Getter
+
 @Slf4j
 public class SpotifyAuthService {
 
     private static final long TOKEN_EXPIRATION_MARGIN_SECONDS = 60;
     private static final long LOGIN_TIMEOUT_SECONDS = 180;
 
-
+    @Getter
     private final SpotifyApi spotifyApi;
+
     private final SpotifyCallbackServer callbackServer;
     private final SpotifyTokenStorage tokenStorage;
     private final SpotifyAuthorizationGenerator authorizationGenerator;
