@@ -146,7 +146,7 @@ public class SpotifyAuthService {
                 log.info("Abra está URL no navegador: \n{}", authorizationUri);
             }
 
-            String code = callback.codeFuture().get(
+            String code = callback.awaitCode(
                     LOGIN_TIMEOUT_SECONDS, TimeUnit.SECONDS
             );
 
@@ -177,7 +177,7 @@ public class SpotifyAuthService {
                     e.getCause());
 
         }finally {
-            callback.server().stop(1);
+            callback.stop();
             log.debug("Servidor callback encerrado");
         }
     }
