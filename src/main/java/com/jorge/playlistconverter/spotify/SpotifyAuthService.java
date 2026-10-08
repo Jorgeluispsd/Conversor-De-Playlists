@@ -39,11 +39,11 @@ public class SpotifyAuthService {
     private String activeScope;
 
     public SpotifyAuthService(SpotifyApi spotifyApi, SpotifyCallbackServer callbackServer,
-                              SpotifyAuthorizationGenerator authorizationGenerator){
+                              SpotifyAuthorizationGenerator authorizationGenerator, SpotifyTokenStorage tokenStorage){
         this.spotifyApi = spotifyApi;
         this.callbackServer = callbackServer;
         this.authorizationGenerator = authorizationGenerator;
-        this.tokenStorage = new SpotifyTokenStorage();
+        this.tokenStorage = tokenStorage;
     }
 
     public void ensureAuthenticated(String scope) throws Exception {
@@ -142,7 +142,7 @@ public class SpotifyAuthService {
             log.info("Servidor callback iniciado. Aguardando autorização.");
 
             if (Desktop.isDesktopSupported()
-                    && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {;
+                    && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                 Desktop.getDesktop().browse(authorizationUri);
                 log.info("Navegador aberto. Aguardando autorização do usuário...");
             }else{

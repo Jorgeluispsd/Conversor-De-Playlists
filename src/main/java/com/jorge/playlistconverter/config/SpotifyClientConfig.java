@@ -3,6 +3,7 @@ package com.jorge.playlistconverter.config;
 import com.jorge.playlistconverter.spotify.SpotifyAuthService;
 import com.jorge.playlistconverter.spotify.SpotifyClientCredentialsService;
 import com.jorge.playlistconverter.spotify.SpotifyMusicService;
+import com.jorge.playlistconverter.spotify.SpotifyTokenStorage;
 import com.jorge.playlistconverter.spotify.authorization.SpotifyAuthorizationGenerator;
 import com.jorge.playlistconverter.spotify.callback.SpotifyCallbackServer;
 import io.github.cdimascio.dotenv.Dotenv;
@@ -28,8 +29,9 @@ public class SpotifyClientConfig {
     @Bean
     public SpotifyAuthService spotifyAuthService(SpotifyApi spotifyApi,
                                                  SpotifyCallbackServer spotifyCallbackServer,
-                                                 SpotifyAuthorizationGenerator authorizationGenerator) {
-        return new SpotifyAuthService(spotifyApi, spotifyCallbackServer, authorizationGenerator);
+                                                 SpotifyAuthorizationGenerator authorizationGenerator,
+                                                 SpotifyTokenStorage tokenStorage) {
+        return new SpotifyAuthService(spotifyApi, spotifyCallbackServer, authorizationGenerator, tokenStorage);
     }
 
 
@@ -61,4 +63,8 @@ public class SpotifyClientConfig {
         return new SpotifyAuthorizationGenerator();
     }
 
+    @Bean
+    public SpotifyTokenStorage spotifyTokenStorage(){
+        return new SpotifyTokenStorage();
+    }
 }
