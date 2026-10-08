@@ -45,7 +45,6 @@ public class PlaylistConverterApplication {
             try {
                 String playlistId = "0ulqoAeaiNTF5YTKQ4nD9P";
 
-
                 System.out.println("=== Primeira leitura ===");
 
                 List<Song> songs =
