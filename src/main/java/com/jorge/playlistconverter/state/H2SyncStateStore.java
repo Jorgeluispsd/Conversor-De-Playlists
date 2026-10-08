@@ -2,6 +2,7 @@ package com.jorge.playlistconverter.state;
 
 import com.jorge.playlistconverter.enums.SyncRunStatus;
 import com.jorge.playlistconverter.model.Song;
+import com.jorge.playlistconverter.state.sql.SqlResourceLoader;
 
 import java.util.Objects;
 import java.util.OptionalLong;
@@ -27,6 +28,7 @@ public class H2SyncStateStore implements SyncStateStore{
     private static final String FINISH_SYNC_RUN_PATH = "sql/queries/finish_sync_run.sql";
 
     private final String dbPath;
+    private final SqlResourceLoader sqlResourceLoader;
 
     private final String isAlreadySyncedSql;
     private final String markSyncedSql;
@@ -36,7 +38,9 @@ public class H2SyncStateStore implements SyncStateStore{
     private final String startSyncRunSql;
     private final String finishSyncRunSql;
 
-    public H2SyncStateStore(){
+    public H2SyncStateStore(SqlResourceLoader sqlResourceLoader){
+        this.sqlResourceLoader = sqlResourceLoader;
+
         String homeDir = System.getProperty("user.home");
         Path appDir = Paths.get(homeDir, ".playlist-converter");
 
@@ -49,17 +53,17 @@ public class H2SyncStateStore implements SyncStateStore{
         this.dbPath = appDir.resolve("data.db").toString();
         initializeDatabase();
 
-        this.isAlreadySyncedSql = readSqlFile(IS_ALREADY_SYNCED_PATH);
-        this.markSyncedSql = readSqlFile(MARK_SYNCED_PATH);
-        this.getHistorySql = readSqlFile(GET_HISTORY_PATH);
-        this.createSyncJobSql = readSqlFile(CREATE_SYNC_JOB_PATH);
-        this.findSyncJobSql = readSqlFile(FIND_SYNC_JOB_PATH);
-        this.startSyncRunSql = readSqlFile(START_SYNC_RUN_PATH);
-        this.finishSyncRunSql = readSqlFile(FINISH_SYNC_RUN_PATH);
+        this.isAlreadySyncedSql = sqlResourceLoader.read(IS_ALREADY_SYNCED_PATH);
+        this.markSyncedSql = sqlResourceLoader.read(MARK_SYNCED_PATH);
+        this.getHistorySql = sqlResourceLoader.read(GET_HISTORY_PATH);
+        this.createSyncJobSql = sqlResourceLoader.read(CREATE_SYNC_JOB_PATH);
+        this.findSyncJobSql = sqlResourceLoader.read(FIND_SYNC_JOB_PATH);
+        this.startSyncRunSql = sqlResourceLoader.read(START_SYNC_RUN_PATH);
+        this.finishSyncRunSql = sqlResourceLoader.read(FINISH_SYNC_RUN_PATH);
     }
 
     private void initializeDatabase() {
-        String sql = readSqlFile(SCHEMA_PATH);
+        String sql = sqlResourceLoader.read(SCHEMA_PATH);
 
         try(Connection conn = getConnection();
             Statement stmt = conn.createStatement()) {
