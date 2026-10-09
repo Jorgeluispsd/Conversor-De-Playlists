@@ -1,5 +1,6 @@
 package com.jorge.playlistconverter.spotify.callback;
 
+import com.jorge.playlistconverter.errors.AuthorizationDeniedException;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import lombok.extern.slf4j.Slf4j;
@@ -117,7 +118,7 @@ public class SpotifyCallbackServer {
                         sendCallbackResponse(exchange, HTTP_BAD_REQUEST,
                                 "Autorização não concluida. Volte ao terminal.");
 
-                        future.completeExceptionally(new IllegalStateException(
+                        future.completeExceptionally(new AuthorizationDeniedException(
                                 "Spotify não autorizou o acesso: " + result.error()));
                     }
 

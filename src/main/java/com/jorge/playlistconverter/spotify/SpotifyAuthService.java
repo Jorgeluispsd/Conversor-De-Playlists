@@ -1,5 +1,7 @@
 package com.jorge.playlistconverter.spotify;
 
+import com.jorge.playlistconverter.errors.AuthorizationDeniedException;
+import com.jorge.playlistconverter.errors.AuthorizationTimeoutException;
 import com.jorge.playlistconverter.spotify.authorization.SpotifyAuthorizationGenerator;
 import com.jorge.playlistconverter.spotify.callback.CallbackSession;
 import com.jorge.playlistconverter.spotify.callback.SpotifyCallbackServer;
@@ -168,7 +170,7 @@ public class SpotifyAuthService {
 
 
         } catch (TimeoutException e) {
-            throw new IllegalStateException(
+            throw new AuthorizationTimeoutException(
                     "Tempo de autorização esgotado. Inicie uma nova tentativa.", e);
 
         } catch (InterruptedException e) {
@@ -176,9 +178,16 @@ public class SpotifyAuthService {
             throw e;
 
         }catch (ExecutionException e){
+            Throwable cause = e.getCause();
+
+            if (cause instanceof AuthorizationDeniedException denied){
+
+                throw denied;
+            }
+
             throw new IllegalStateException(
                     "Falha no Callback de autorização do Spotify",
-                    e.getCause());
+                    cause);
 
         }finally {
             callback.stop();
