@@ -1,12 +1,16 @@
 package com.jorge.playlistconverter.spotify;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.jorge.playlistconverter.errors.TokenStorageException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -30,7 +34,7 @@ public class SpotifyTokenStorage {
         try {
             Files.createDirectories(appDir);
         } catch (IOException e) {
-            throw new RuntimeException("Erro ao criar diretório de configuração", e);
+            throw new TokenStorageException("Erro ao criar diretório de configuração", e);
         }
     }
 
@@ -45,27 +49,54 @@ public class SpotifyTokenStorage {
             restrictPermissions();
             log.info("Tokens salvo com sucesso na pasta");
         } catch (IOException e) {
-            throw new RuntimeException("Erro ao salvar tokens", e);
+            throw new TokenStorageException("Erro ao salvar tokens", e);
         }
     }
 
     public Optional<StoredToken> load(){
-        if (!Files.exists(tokensFilePath)){
-            return Optional.empty();
-        }
+        String json;
 
         try {
-            String json = Files.readString(tokensFilePath, StandardCharsets.UTF_8);
-            JsonObject data = gson.fromJson(json, JsonObject.class);
+            json = Files.readString(tokensFilePath, StandardCharsets.UTF_8);
 
-            return Optional.of(new StoredToken(
-                    data.get("refresh_token").getAsString(),
-                    data.get("scope").getAsString()));
+        }catch (NoSuchFileException e) {
+            return Optional.empty();
 
-        }catch (Exception e){
-            log.warn("Arquivo de tokens ilegível ou em formato antigo; Será necessário novo login");
+        }catch (IOException e) {
+            throw new TokenStorageException("Erro ao ler arquivo de tokens", e);
+        }
+
+        JsonObject data;
+
+        try {
+            data = gson.fromJson(json, JsonObject.class);
+
+        }catch (JsonParseException e){
+            log.warn("Arquivo de tokens com JSON inválido; Será necessário novo login");
+            return Optional.empty();
+
+        }
+
+        if (data == null
+                || isInvalidString(data.get("refresh_token"))
+                || isInvalidString(data.get("scope"))){
+
+            log.warn("Arquivo de tokens sem refresh token ou scope válidos; "
+                    + "será necessário novo login");
             return Optional.empty();
         }
+
+        return Optional.of(new StoredToken(
+                data.get("refresh_token").getAsString(),
+                data.get("scope").getAsString()));
+    }
+
+    private boolean isInvalidString(JsonElement value){
+
+        return value == null
+                || !value.isJsonPrimitive()
+                || !value.getAsJsonPrimitive().isString()
+                || value.getAsString().isBlank();
     }
 
     public void delete(){
@@ -74,7 +105,7 @@ public class SpotifyTokenStorage {
                 log.info("Refresh token salvo foi removido");
             }
         } catch (IOException e) {
-            throw new RuntimeException("Erro ao remover o arquivo de tokens", e);
+            throw new TokenStorageException("Erro ao remover o arquivo de tokens", e);
         }
     }
 
