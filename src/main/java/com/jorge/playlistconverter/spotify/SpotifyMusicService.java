@@ -35,6 +35,9 @@ public class SpotifyMusicService implements MusicService {
         try {
             spotifyAuthService.ensureAuthenticated(READ_SCOPES);
 
+        }catch (RuntimeException e){
+            throw e;
+
         } catch (Exception e) {
             throw new RuntimeException("Falha ao autenticar no Spotify", e);
         }
@@ -112,6 +115,10 @@ public class SpotifyMusicService implements MusicService {
                             + "ou colaborador da playlist. "
                             + "Se ela pertence a outra pessoa, peça ao criador "
                             + "para adicioná-lo como colaborador.", e);
+
+        }catch (RuntimeException e){
+            throw e;
+
         }catch (Exception e){
             throw new RuntimeException("Erro ao buscar tracks da playlist: " + e.getMessage(), e);
         }
