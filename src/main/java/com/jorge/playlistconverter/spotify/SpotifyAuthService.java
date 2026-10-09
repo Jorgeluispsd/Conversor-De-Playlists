@@ -191,7 +191,7 @@ public class SpotifyAuthService {
                 throw callbackFailure;
             }
 
-            throw new IllegalStateException(
+            throw new AuthorizationCallbackException(
                     "Falha no Callback de autorização do Spotify",
                     cause);
 

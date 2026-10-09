@@ -2,6 +2,7 @@ package com.jorge.playlistconverter.spotify.callback;
 
 import com.jorge.playlistconverter.errors.AuthorizationCallbackException;
 import com.jorge.playlistconverter.errors.AuthorizationDeniedException;
+import com.jorge.playlistconverter.errors.CallbackServerStartupException;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import lombok.extern.slf4j.Slf4j;
@@ -89,11 +90,19 @@ public class SpotifyCallbackServer {
         }
     }
 
-    public CallbackSession start(String expectedState) throws IOException{
+    public CallbackSession start(String expectedState){
         CompletableFuture<String> future = new CompletableFuture<>();
 
-        HttpServer server = HttpServer.create(
-                new InetSocketAddress("127.0.0.1", CALLBACK_PORT), 0);
+        HttpServer server;
+
+        try {
+            server = HttpServer.create(
+                    new InetSocketAddress("127.0.0.1", CALLBACK_PORT), 0);
+        }catch (IOException e){
+            throw new CallbackServerStartupException("Não foi possível abrir o servidor callback do Spotify. "
+                    + "Verifique se outra aplicação está usando o endereço configurado.",
+                    e);
+        }
 
         server.createContext(CALLBACK_PATH, exchange -> {
             try {
