@@ -1,5 +1,6 @@
 package com.jorge.playlistconverter.spotify;
 
+import com.jorge.playlistconverter.errors.AuthorizationCallbackException;
 import com.jorge.playlistconverter.errors.AuthorizationDeniedException;
 import com.jorge.playlistconverter.errors.AuthorizationTimeoutException;
 import com.jorge.playlistconverter.spotify.authorization.SpotifyAuthorizationGenerator;
@@ -183,6 +184,11 @@ public class SpotifyAuthService {
             if (cause instanceof AuthorizationDeniedException denied){
 
                 throw denied;
+            }
+
+            if(cause instanceof AuthorizationCallbackException callbackFailure){
+
+                throw callbackFailure;
             }
 
             throw new IllegalStateException(

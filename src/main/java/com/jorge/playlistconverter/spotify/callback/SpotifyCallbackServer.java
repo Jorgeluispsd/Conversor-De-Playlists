@@ -1,5 +1,6 @@
 package com.jorge.playlistconverter.spotify.callback;
 
+import com.jorge.playlistconverter.errors.AuthorizationCallbackException;
 import com.jorge.playlistconverter.errors.AuthorizationDeniedException;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -126,7 +127,7 @@ public class SpotifyCallbackServer {
                         sendCallbackResponse(exchange, HTTP_BAD_REQUEST,
                                 "Código de autorização ausente.");
 
-                        future.completeExceptionally(new IllegalStateException(
+                        future.completeExceptionally(new AuthorizationCallbackException(
                                 "Callback sem código de autorização"));
                     }
 
