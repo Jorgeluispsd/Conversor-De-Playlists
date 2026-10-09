@@ -3,6 +3,7 @@ package com.jorge.playlistconverter.spotify;
 import com.jorge.playlistconverter.errors.AuthorizationCallbackException;
 import com.jorge.playlistconverter.errors.AuthorizationDeniedException;
 import com.jorge.playlistconverter.errors.AuthorizationTimeoutException;
+import com.jorge.playlistconverter.errors.SpotifyAuthenticationException;
 import com.jorge.playlistconverter.spotify.authorization.SpotifyAuthorizationGenerator;
 import com.jorge.playlistconverter.spotify.callback.CallbackSession;
 import com.jorge.playlistconverter.spotify.callback.SpotifyCallbackServer;
@@ -12,6 +13,7 @@ import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.exceptions.detailed.BadRequestException;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
+import org.apache.hc.core5.http.ParseException;
 
 import java.awt.*;
 import java.net.URI;
@@ -24,6 +26,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 
 
 @Slf4j
@@ -50,7 +54,10 @@ public class SpotifyAuthService {
         this.tokenStorage = tokenStorage;
     }
 
-    public void ensureAuthenticated(String scope) throws Exception {
+    public void ensureAuthenticated(String scope) throws IOException,
+            SpotifyWebApiException, ParseException,
+            NoSuchAlgorithmException, InterruptedException{
+
         if (scope ==  null || scope.isBlank())
             throw new IllegalArgumentException("O escopo não pode ser nulo ou vazio"
             );
@@ -89,11 +96,12 @@ public class SpotifyAuthService {
                     return;
                 } catch (SpotifyWebApiException e) {
                     if (!isInvalidRefreshToken(e)){
-                        log.warn("Falha na renovação Spotify; token salvo preservado. Tipo: {}",
-                                e.getClass().getSimpleName()
-                        );
 
-                        throw e;
+                        log.warn("Falha na renovação Spotify; token salvo preservado. Tipo: {}",
+                                e.getClass().getSimpleName());
+
+                        throw new SpotifyAuthenticationException("Não foi possível renovar a sessão do Spotify. "
+                                + "O token salvo foi preservado.", e);
 
                     }
 
@@ -106,7 +114,13 @@ public class SpotifyAuthService {
                     spotifyApi.setRefreshToken(null);
                     accessTokenExpirationAt = null;
                     activeScope = null;
+
+                } catch (IOException | ParseException e){
+
+                    throw new SpotifyAuthenticationException("Falha de comunicação ou processamento ao renovar "
+                            + "a sessão do Spotify. O token salvo foi preservado.", e);
                 }
+
             }
         }
 
@@ -124,7 +138,10 @@ public class SpotifyAuthService {
                 && hasRequiredScopes(activeScope, requestedScope);
     }
 
-    public AuthorizationCodeCredentials login(String scope) throws Exception{
+    public AuthorizationCodeCredentials login(String scope) throws IOException,
+            SpotifyWebApiException, ParseException,
+            NoSuchAlgorithmException, InterruptedException{
+
         log.info("Iniciando fluxo de autenticação Spotify com scope: {}", scope);
 
         String codeVerifier = authorizationGenerator.generateCodeVerifier();
