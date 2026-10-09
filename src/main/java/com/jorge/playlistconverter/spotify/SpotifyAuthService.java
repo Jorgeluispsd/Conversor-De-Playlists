@@ -174,10 +174,18 @@ public class SpotifyAuthService {
                     LOGIN_TIMEOUT_SECONDS, TimeUnit.SECONDS
             );
 
-            AuthorizationCodeCredentials credentials = spotifyApi
-                    .authorizationCodePKCE(code, codeVerifier)
-                    .build()
-                    .execute();
+            AuthorizationCodeCredentials credentials;
+
+            try {
+                credentials = spotifyApi
+                        .authorizationCodePKCE(code, codeVerifier)
+                        .build()
+                        .execute();
+
+            }catch (IOException | SpotifyWebApiException | ParseException e){
+                throw new SpotifyAuthenticationException("Não foi possível trocar o código de autorização "
+                        + "por tokens do Spotify. Inicie uma nova tentativa.", e);
+            }
 
             applyCredentials(credentials, scope);
 
