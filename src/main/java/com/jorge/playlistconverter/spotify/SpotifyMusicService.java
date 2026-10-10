@@ -1,6 +1,7 @@
 package com.jorge.playlistconverter.spotify;
 
 
+import com.jorge.playlistconverter.errors.OperationInterruptedException;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
 import se.michaelthelin.spotify.SpotifyApi;
@@ -34,6 +35,12 @@ public class SpotifyMusicService implements MusicService {
     public List<Song> getPlaylistTracks(String playlistId) {
         try {
             spotifyAuthService.ensureAuthenticated(READ_SCOPES);
+
+        }catch (InterruptedException e){
+            Thread.currentThread().interrupt();
+
+            throw new OperationInterruptedException(
+                    "Leitura da playlist interrompida durante a autenticação Spotify.", e);
 
         }catch (RuntimeException e){
             throw e;
@@ -115,6 +122,12 @@ public class SpotifyMusicService implements MusicService {
                             + "ou colaborador da playlist. "
                             + "Se ela pertence a outra pessoa, peça ao criador "
                             + "para adicioná-lo como colaborador.", e);
+
+        }catch (InterruptedException e){
+            Thread.currentThread().interrupt();
+
+            throw new OperationInterruptedException(
+                    "Leitura da playlist Spotify interrompida.", e);
 
         }catch (RuntimeException e){
             throw e;

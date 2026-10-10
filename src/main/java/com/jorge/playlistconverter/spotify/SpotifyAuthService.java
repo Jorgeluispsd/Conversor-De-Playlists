@@ -54,9 +54,8 @@ public class SpotifyAuthService {
         this.tokenStorage = tokenStorage;
     }
 
-    public void ensureAuthenticated(String scope) throws IOException,
-            SpotifyWebApiException, ParseException,
-            NoSuchAlgorithmException, InterruptedException{
+    public void ensureAuthenticated(String scope) throws NoSuchAlgorithmException,
+            InterruptedException{
 
         if (scope ==  null || scope.isBlank())
             throw new IllegalArgumentException("O escopo não pode ser nulo ou vazio"
@@ -138,9 +137,8 @@ public class SpotifyAuthService {
                 && hasRequiredScopes(activeScope, requestedScope);
     }
 
-    public AuthorizationCodeCredentials login(String scope) throws IOException,
-            SpotifyWebApiException, ParseException,
-            NoSuchAlgorithmException, InterruptedException{
+    public AuthorizationCodeCredentials login(String scope) throws NoSuchAlgorithmException,
+            InterruptedException{
 
         log.info("Iniciando fluxo de autenticação Spotify com scope: {}", scope);
 
@@ -164,8 +162,15 @@ public class SpotifyAuthService {
 
             if (Desktop.isDesktopSupported()
                     && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                Desktop.getDesktop().browse(authorizationUri);
-                log.info("Navegador aberto. Aguardando autorização do usuário...");
+                try{
+                    Desktop.getDesktop().browse(authorizationUri);
+                    log.info("Navegador aberto. Aguardando autorização do usuário...");
+
+                }catch (IOException e){
+                    throw new SpotifyAuthenticationException("Não foi possível abrir o navegador para autorizar "
+                            + "o acesso ao Spotify.", e);
+                }
+
             }else{
                 log.info("Abra está URL no navegador: \n{}", authorizationUri);
             }

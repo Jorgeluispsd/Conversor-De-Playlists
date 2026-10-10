@@ -23,7 +23,7 @@ Nota de acompanhamento solicitada pelo Jorge. Não substitui README/TASKS; esses
 2. Revisar erros em blocos: armazenamento de tokens, autenticação/callback, serviços de música e persistência SQL.
 3. Criar package errors para exceptions da aplicação quando houver significado claro. Capturas e decisões de recuperação permanecem nas camadas responsáveis; não criar uma classe genérica para capturar tudo.
 4. Extrair preparação do banco em bloco estrutural separado das mudanças de erros.
-5. Validar os blocos atuais por compilação, testes existentes e testes manuais. Por decisão do Jorge, deixar a ampliação dos testes automatizados para a Fase 6.
+5. Validar os blocos atuais por compilação, testes existentes e testes manuais. Criar testes automatizados específicos quando necessários para refatorações ou mudanças de comportamento, orientando Jorge passo a passo e criando classes em src/test/java quando apropriado. A cobertura mais ampla do fluxo de conversão permanece para a Fase 6.
 6. Atualizar README.md, docs/TASKS.md, docs/READMEBASE.md, comentários e TODOs.
 7. Iniciar Fase 6 com conversão real, ampliar testes automatizados e avaliar padrões somente diante do fluxo concreto.
 
@@ -43,3 +43,14 @@ Nota de acompanhamento solicitada pelo Jorge. Não substitui README/TASKS; esses
 - Login aceito, rejeitado, timeout e reutilização da sessão testados manualmente após extrações de callback e geração da autorização.
 - Injeção de SpotifyTokenStorage, leitura SQL e acesso ao console H2 validados manualmente.
 - Revisão estática realizada; ela não equivale a execução de todos os testes.
+
+## Atualização — 10/10/2026
+
+- Getters de SpotifyAuthService limitados a SpotifyApi; evento e imports do console H2 ajustados.
+- Armazenamento de tokens diferencia ausência, conteúdo inválido e falha técnica, usando TokenStorageException e validação explícita dos campos.
+- Timeout, rejeição, processamento e abertura do servidor callback possuem exceptions específicas. Porta ocupada, início com porta livre e liberação após stop validados em teste isolado temporário.
+- SpotifyMusicService preserva RuntimeExceptions específicas; revisão das demais capturas e das exceptions de leitura ainda pendente.
+- Renovação e troca por tokens usam SpotifyAuthenticationException, preservando causas; abertura automática do navegador tem tratamento localizado de IOException.
+- PENDÊNCIA ANTES DA FASE 6: investigar por que Desktop.isDesktopSupported()/Desktop.Action.BROWSE levam sempre ao fallback manual no ambiente do Jorge. Diagnosticar as condições reais, configuração headless/JVM e suporte do ambiente antes de escolher uma solução.
+- Ainda revisar assinaturas throws após os tratamentos, interrupção nos chamadores, callback, serviços de música e SQL/H2; extrair preparação do banco em bloco próprio.
+- Antes da documentação e Fase 6, retomar esta lista com Jorge e conferir cada pendência. Preferência esclarecida: testes automatizados relevantes às mudanças atuais estão autorizados; orientar implementação manual e explicar seus cenários. Ampliar cobertura do fluxo real na Fase 6.
