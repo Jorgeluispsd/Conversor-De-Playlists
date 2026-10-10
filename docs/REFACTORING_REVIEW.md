@@ -1,6 +1,6 @@
 # Revisão e próximos blocos — 08/10/2026
 
-Nota de acompanhamento solicitada pelo Jorge. Não substitui README/TASKS; esses documentos serão atualizados após as alterações e validações.
+Nota de acompanhamento solicitada pelo Jorge. Não substitui README/TASKS; o progresso é atualizado após as validações. Decisões de escopo e limites externos estão em [PROJECT_LIMITATIONS.md](PROJECT_LIMITATIONS.md).
 
 ## Forma de trabalho
 
@@ -27,15 +27,15 @@ Nota de acompanhamento solicitada pelo Jorge. Não substitui README/TASKS; esses
 6. Atualizar README.md, docs/TASKS.md, docs/READMEBASE.md, comentários e TODOs.
 7. Iniciar Fase 6 com conversão real, ampliar testes automatizados e avaliar padrões somente diante do fluxo concreto.
 
-## Pontos concretos a resolver
+## Pontos da revisão inicial e acompanhamento
 
-- SpotifyTokenStorage.load(): separar arquivo ausente, JSON inválido, falha de leitura e erro de programação. Definir explicitamente quais situações permitem novo login e quais devem ser propagadas; preservar arquivo em falhas técnicas.
+- Resolvido — SpotifyTokenStorage.load(): separar arquivo ausente, JSON inválido, falha de leitura e erro de programação. Definir explicitamente quais situações permitem novo login e quais devem ser propagadas; preservar arquivo em falhas técnicas.
 - SpotifyAuthService: reduzir throws Exception quando adequado, distinguir resultados do login e falhas técnicas, preservar interrupção, timeout, encerramento e sessão em falhas transitórias.
-- SpotifyMusicService/YoutubeMusicService: revisar capturas amplas e mensagens, preservar causas e retry único após 401.
+- Resolvido no bloco atual — SpotifyMusicService/YoutubeMusicService: revisar capturas amplas e mensagens, preservar causas e retry único após 401.
 - H2SyncStateStore: preservar reconhecimento de SQLState 23505 ao alterar exceptions; preservar regras de conclusão de sync_run e status success de synced_track.
-- Lombok @Getter em SpotifyAuthService: getSpotifyApi() é o único getter usado pelo código atual; não expor callback, gerador, armazenamento e estado interno.
-- H2ConsoleConfig: listener alterado para ApplicationStartedEvent, informando o link antes dos runners. Remover import não utilizado de ApplicationReadyEvent. Manter acesso local.
-- Testes atuais: apenas matcher possui testes automatizados. Selecionar regressões de token storage, PKCE, callback e H2; usar arquivos/bancos temporários, sem tokens pessoais nem chamadas reais às APIs.
+- Resolvido — Lombok @Getter em SpotifyAuthService: getSpotifyApi() é o único getter usado pelo código atual; não expor callback, gerador, armazenamento e estado interno.
+- Resolvido — H2ConsoleConfig: listener alterado para ApplicationStartedEvent, informando o link antes dos runners. Remover import não utilizado de ApplicationReadyEvent. Manter acesso local.
+- Testes atuais: matcher e interrupção no SpotifyMusicService possuem testes automatizados (21 testes aprovados no Maven em 10/10/2026). Avaliar testes adicionais pertinentes de token storage, PKCE, callback e H2; usar arquivos/bancos temporários, sem tokens pessoais nem chamadas reais às APIs.
 - Documentação: corrigir referências a Track, SQLite e fluxo híbrido Client Credentials, distinguindo funcionalidades implementadas de planejadas.
 
 ## Validação já relatada
@@ -49,8 +49,27 @@ Nota de acompanhamento solicitada pelo Jorge. Não substitui README/TASKS; esses
 - Getters de SpotifyAuthService limitados a SpotifyApi; evento e imports do console H2 ajustados.
 - Armazenamento de tokens diferencia ausência, conteúdo inválido e falha técnica, usando TokenStorageException e validação explícita dos campos.
 - Timeout, rejeição, processamento e abertura do servidor callback possuem exceptions específicas. Porta ocupada, início com porta livre e liberação após stop validados em teste isolado temporário.
-- SpotifyMusicService preserva RuntimeExceptions específicas; revisão das demais capturas e das exceptions de leitura ainda pendente.
+- SpotifyMusicService usa SpotifyPlaylistReadException para leitura, declara exceptions verificadas específicas e preserva causas, interrupção e retry único após 401. Testes Maven e execução normal validados por Jorge.
+- YoutubeMusicService usa YoutubePlaylistReadException e YoutubeSearchException, distinguindo resposta de erro estruturada da API de outras IOExceptions. Testes Maven, busca e leitura de playlist validados por Jorge; cenários de falha desses novos tratamentos ainda precisam de testes isolados.
 - Renovação e troca por tokens usam SpotifyAuthenticationException, preservando causas; abertura automática do navegador tem tratamento localizado de IOException.
 - PENDÊNCIA ANTES DA FASE 6: investigar por que Desktop.isDesktopSupported()/Desktop.Action.BROWSE levam sempre ao fallback manual no ambiente do Jorge. Diagnosticar as condições reais, configuração headless/JVM e suporte do ambiente antes de escolher uma solução.
 - Ainda revisar assinaturas throws após os tratamentos, interrupção nos chamadores, callback, serviços de música e SQL/H2; extrair preparação do banco em bloco próprio.
 - Antes da documentação e Fase 6, retomar esta lista com Jorge e conferir cada pendência. Preferência esclarecida: testes automatizados relevantes às mudanças atuais estão autorizados; orientar implementação manual e explicar seus cenários. Ampliar cobertura do fluxo real na Fase 6.
+
+## Situação consolidada — 10/10/2026
+
+- [x] Callback, sessão, resultado e status separados; geração PKCE e armazenamento de tokens extraídos e injetados.
+- [x] Getter do SpotifyAuthService limitado ao SpotifyApi.
+- [x] Ausência, JSON inválido e falha técnica de armazenamento diferenciados.
+- [x] Erros de autorização, callback, renovação e troca de tokens especificados.
+- [x] Leitura Spotify com exceptions específicas, preservação de interrupção e retry único após 401.
+- [x] Leitura e busca YouTube com exceptions específicas e distinção entre erro estruturado da API e outras IOExceptions.
+- [x] SqlResourceLoader extraído; console H2 local com link informado na inicialização.
+- [x] Testes isolados de interrupção no Spotify; agente Mockito configurado e Logback atualizado para 1.6.5. Testes Maven e aplicação validados por Jorge.
+- [ ] Tratar erros do SqlResourceLoader e das operações H2, preservando SQLState 23505 e regras de persistência.
+- [ ] Extrair preparação do banco em bloco estrutural separado.
+- [ ] Concluir revisão dos tratamentos restantes do callback e autenticação; diagnosticar fallback do navegador.
+- [ ] Validar cenários de falha dos novos tratamentos com testes isolados pertinentes.
+- [ ] Concluir atualização de README, READMEBASE, comentários e TODOs antes da Fase 6.
+
+Tratamento de limites e retomada estão no TASKS. A prévia, revisão e confirmação pelo usuário pertencem à Fase 8. As decisões de quota e limitações do produto estão em [PROJECT_LIMITATIONS.md](PROJECT_LIMITATIONS.md).

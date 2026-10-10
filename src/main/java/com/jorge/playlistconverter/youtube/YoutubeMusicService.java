@@ -1,9 +1,12 @@
 package com.jorge.playlistconverter.youtube;
 
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.PlaylistItem;
 import com.google.api.services.youtube.model.PlaylistItemListResponse;
 import com.google.api.services.youtube.model.SearchListResponse;
+import com.jorge.playlistconverter.errors.YoutubePlaylistReadException;
+import com.jorge.playlistconverter.errors.YoutubeSearchException;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
 
@@ -31,24 +34,24 @@ public class YoutubeMusicService implements MusicService {
     @Override
     public List<Song> getPlaylistTracks(String playlistId) {
         // TODO (Fase 7): usar playlistItems.list
-        try{
+        try {
             List<Song> songs = new ArrayList<>();
             String pageToken = null;
 
-            do{
+            do {
                 YouTube.PlaylistItems.List request = youtube.playlistItems()
                         .list(List.of("snippet"))
                         .setPlaylistId(playlistId)
                         .setMaxResults(50L)
                         .setKey(apiKey);
 
-                if (pageToken != null){
+                if (pageToken != null) {
                     request.setPageToken(pageToken);
                 }
 
                 PlaylistItemListResponse response = request.execute();
 
-                for (PlaylistItem item : response.getItems()){
+                for (PlaylistItem item : response.getItems()) {
                     songs.add(new Song(
                             item.getSnippet().getResourceId().getVideoId(),
                             item.getSnippet().getTitle(),
@@ -59,12 +62,17 @@ public class YoutubeMusicService implements MusicService {
 
                 pageToken = response.getNextPageToken();
 
-            }while(pageToken != null);
+            } while (pageToken != null);
 
             return songs;
 
+        }catch (GoogleJsonResponseException e){
+            throw new YoutubePlaylistReadException("A API do YouTube recusou a leitura da playlist. "
+             + "Código HTTP: " + e.getStatusCode() + ".", e);
+
         }catch (IOException e){
-            throw new RuntimeException("Erro ao ler a playlist do Youtube" + playlistId, e);
+            throw new YoutubePlaylistReadException(
+                    "Falha de comunicação ao consultar a playlist do YouTube.", e);
         }
         //throw new UnsupportedOperationException("TODO: Fase 7 (conversão inversa)");
     }
@@ -74,7 +82,7 @@ public class YoutubeMusicService implements MusicService {
         // TODO (Fase 3): montar query "artista + título" e chamar youtube.search().list(...)
         String query = sourceSong.artist() + " " + sourceSong.title();
 
-        try{
+        try {
 
             YouTube.Search.List request = youtube.search()
                     .list(List.of("snippet"))
@@ -94,8 +102,13 @@ public class YoutubeMusicService implements MusicService {
                     ))
                     .toList();
 
+        }catch (GoogleJsonResponseException e){
+            throw new YoutubeSearchException(
+                    "A API do YouTube recusou a busca de candidatos. "
+                            + "Código HTTP: " + e.getStatusCode() + ".", e);
+
         } catch (IOException e) {
-            throw new RuntimeException("Erro ao buscar video no youtube" + query , e);
+            throw new YoutubeSearchException("Falha de comunicação ao buscar candidatos no YouTube.", e);
         }
         // Dica: peça uns 3-5 resultados por busca, não só o primeiro — o TrackMatcher
         // (Fase 4) vai escolher o melhor entre eles.

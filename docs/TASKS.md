@@ -3,6 +3,8 @@
 Checklist de desenvolvimento, na ordem recomendada. Marque cada item conforme for
 concluindo. As referências de arquivo/classe já existem no esqueleto do projeto.
 
+Limitações dos provedores e decisões de escopo: [PROJECT_LIMITATIONS.md](PROJECT_LIMITATIONS.md).
+
 ---
 
 ## Fase 0 — Setup (feito, só confirme)
@@ -24,10 +26,10 @@ concluindo. As referências de arquivo/classe já existem no esqueleto do projet
       autorizado (obrigatório em Development Mode).
 - [X] Copiar Client ID e Client Secret para o `.env`.
 - [X] Criar classe `com.jorge.playlistconverter.spotify.SpotifyAuthService`
-      (nova, não existe ainda) responsável por:
+      responsável por:
   - [X] Montar a URL de autorização (Authorization Code + PKCE, escopo
         `playlist-read-private`).
-  - [X] Abrir essa URL no navegador padrão.
+  - [X] Implementar abertura da URL com fallback manual; diagnóstico do suporte no ambiente atual ainda pendente.
   - [X] Subir um servidor HTTP local simples (ex: `com.sun.net.httpserver.HttpServer`)
         só para capturar o `code` que o Spotify devolve no redirect.
   - [X] Trocar o `code` por um `access_token` + `refresh_token` via
@@ -46,48 +48,24 @@ concluindo. As referências de arquivo/classe já existem no esqueleto do projet
 
 ---
 
-## Fase 2 — Listar faixas de uma playlist do Spotify (abordagem híbrida)
+## Fase 2 — Listar faixas de uma playlist do Spotify
 
-**Nota:** Para permitir leitura de playlists públicas de outros usuários e escrita no seu perfil, usamos
-dois fluxos de autenticação separados:
-- **Client Credentials Flow** (leitura): usa Client ID + Secret, acessa playlists públicas de qualquer usuário
-- **Authorization Code + PKCE** (escrita): fluxo existente da Fase 1, usado para criar playlists no seu perfil
+Estado atual: leitura autenticada por Authorization Code + PKCE via SpotifyAuthService. A abordagem híbrida com Client Credentials foi substituída e não representa o código atual.
 
-- [X] Criar classe `com.jorge.playlistconverter.spotify.SpotifyClientCredentialsService`
-      (nova) responsável por:
-  - [X] Configurar SpotifyApi com Client ID e Client Secret
-  - [X] Obter token via `spotifyApi.clientCredentials()`
-  - [X] Renovar automaticamente quando expira (~1 hora)
-- [X] Renomear `Track` para `Song` em todo o projeto para evitar conflito com a classe `Track` do Spotify
-- [X] Modificar `SpotifyMusicService` para aceitar dois SpotifyApi:
-  - [X] `readApi` (Client Credentials) para operações de leitura
-  - [X] `writeApi` (Authorization Code) para operações de escrita
-- [X] Em `SpotifyMusicService`, implementar `getPlaylistTracks(String playlistId)`:
-  - [X] Usar `readApi` para chamar `getPlaylistsItems(playlistId)`
-  - [X] Tratar paginação — a API retorna no máximo 100 itens por página; repetir
-        a chamada com `offset` até não haver mais itens.
-  - [X] Mapear cada item para um `Song` (título, artista principal, duração).
-  - [X] Corrigir acesso ao track usando `item.getItem()` e cast para `Track` (mudança na API 10.0.0)
-  - [X] Implementar fallback: tentar Client Credentials primeiro, se falhar usar Authorization Code
-- [X] Atualizar configuração Spring em `PlaylistConverterApplication`:
-  - [X] Criar bean `dotenv` para injetar Dotenv
-  - [X] Criar bean `spotifyReadApi` configurado para Client Credentials
-  - [X] Criar bean `spotifyClientCredentialsService` que gerencia token de leitura
-  - [X] Criar bean `spotifyWriteApi` configurado para Authorization Code
-  - [X] Modificar bean `spotifyMusicService` para injetar ambos os APIs (readApi e writeApi) e SpotifyAuthService
-- [X] Atualizar `PlaylistConverterApplication.run()`: usar
-      `spotifyClientCredentialsService` para autenticar e chamar
-      `spotifyMusicService.getPlaylistTracks(...)` usando o ID de uma playlist
-      pública de teste (de outro usuário).
-- [X] Rodar e conferir no console se a lista impressa bate com a playlist real.
+- [X] Renomear o modelo comum Track para Song.
+- [X] Injetar SpotifyAuthService no SpotifyMusicService e usar seu SpotifyApi.
+- [X] Implementar getPlaylistTracks com getPlaylistItems, paginação de 50 itens e mapeamento para Song.
+- [X] Preservar a ordem da origem e mapear título, artista principal e duração.
+- [X] Invalidar o access token após 401, restabelecer autenticação e repetir a requisição apenas uma vez.
+- [X] Validar leitura de playlist e reutilização de sessão pelo runner.
+
 ---
-
 ## Fase 3 — Buscar candidatos no YouTube
 
 - [X] Criar projeto no Google Cloud Console, ativar a **YouTube Data API v3**,
       gerar uma **API key** (não precisa de OAuth para busca).
 - [X] Copiar a chave para `YOUTUBE_API_KEY` no `.env`.
-- [X] Em `YoutubeMusicService`, implementar `searchCandidates(Track sourceSong)`:
+- [X] Em `YoutubeMusicService`, implementar `searchCandidates(Song sourceSong)`:
   - [X] Montar a query como `sourceSong.artist() + " " + sourceSong.title()`.
   - [X] Chamar `youtube.search().list("snippet")` com `q`, `type=video`,
         `maxResults` em torno de 5.
@@ -114,7 +92,7 @@ dois fluxos de autenticação separados:
   - [X] Retornar o candidato de maior score como `MatchResult`.
 - [X] Atualizar `PlaylistConverterApplication.run()` para, em vez de uma faixa
       só, iterar por todas as faixas da playlist de teste:
-  - [X] Para cada uma: buscar candidatos no YouTube, rodar o `TrackMatcherTest`,
+  - [X] Para cada uma: buscar candidatos no YouTube, rodar o `TrackMatcher`,
     imprimir `origem -> candidato encontrado -> confiança`.
 - [X] Rodar contra uma playlist real (ex: a do DJ) e revisar visualmente os
       resultados: quantos acertaram, quantos "viajaram".
@@ -140,6 +118,29 @@ a Fase 5.)*
 
 ---
 
+## Refatoração e validação antes da Fase 6 — atualizado em 10/10/2026
+
+- [X] Separar callback, sessão, resultado e status no package spotify.callback.
+- [X] Extrair geração da autorização PKCE e injetar os componentes de autenticação.
+- [X] Injetar SpotifyTokenStorage e limitar getters do SpotifyAuthService.
+- [X] Diferenciar token ausente, conteúdo inválido e falha técnica de armazenamento.
+- [X] Especificar erros de timeout, rejeição, callback, abertura do servidor e autenticação.
+- [X] Especificar erros de leitura Spotify, preservando causas, interrupção e retry único após 401.
+- [X] Especificar erros de leitura e busca YouTube, distinguindo respostas estruturadas da API de outras IOExceptions.
+- [X] Extrair SqlResourceLoader e disponibilizar link do console H2 local na inicialização.
+- [X] Criar dois testes de interrupção do SpotifyMusicService; manter os 19 testes do matcher.
+- [X] Configurar agente Mockito no Maven e atualizar Logback para 1.6.5.
+- [X] Validar testes Maven e execução normal; busca e leitura YouTube testadas manualmente por Jorge.
+- [ ] Tratar erros de leitura de recursos SQL e persistência H2, preservando duplicatas e regras do histórico.
+- [ ] Extrair preparação do banco em bloco separado.
+- [ ] Concluir revisão dos tratamentos restantes de callback/autenticação e investigar fallback do navegador.
+- [ ] Criar testes isolados pertinentes para os cenários de falha ainda não exercitados.
+- [ ] Tratar limites das APIs: motivo quotaExceeded no YouTube; distinguir rate limit e quota do Spotify, respeitar Retry-After quando aplicável e limitar tentativas.
+- [ ] Validar esses limites com respostas simuladas, sem consumir quota real.
+- [ ] Concluir atualização de README, READMEBASE, comentários e TODOs.
+
+---
+
 ## Fase 6 — Conversão real (escrita)
 
 - [ ] Estender a autenticação Spotify para incluir escopo de escrita
@@ -156,6 +157,8 @@ a Fase 5.)*
   - [ ] Ao final, imprime um resumo (adicionadas / puladas / não encontradas).
 - [ ] Rodar o fluxo completo ponta a ponta em uma playlist de teste pequena
       (5-10 músicas) antes de usar numa playlist grande.
+- [ ] Preservar progresso para retomar após quota esgotada ou falha, sem repetir inserções concluídas; distinguir resultados de pesquisa de histórico de sincronização.
+- [ ] Avaliar obtenção e reutilização de candidatos dentro das políticas dos provedores, sem prometer cobertura de playlists grandes com a quota padrão.
 
 ---
 
@@ -190,22 +193,29 @@ via código, não tem o que a tela chamar.
       reconhece se o usuário colou uma URL completa (Spotify ou YouTube) ou só
       o ID puro, e devolve sempre o ID — assim a tela não exige que o usuário
       saiba extrair o ID manualmente (como você tem feito até agora).
-- [ ] Criar `PlaylistConverterController` (`@RestController`) com um endpoint
-      `POST /convert`:
+- [ ] Criar `PlaylistConverterController` (`@RestController`) com operações separadas de análise e execução confirmada (contratos a definir):
   - [ ] Recebe um `ConversionRequest` no corpo da requisição.
   - [ ] Com base em `direction`, decide qual `MusicService` é origem e qual é
         destino (reaproveitando a mesma lógica bidirecional da Fase 7).
-  - [ ] Chama o `PlaylistConverter.convert(...)` já existente.
+  - [ ] Adaptar o orquestrador da Fase 6 para separar obtenção/comparação de candidatos da escrita no destino.
+  - [ ] Retornar a prévia sem criar a playlist; executar a criação apenas após confirmação explícita, usando os itens escolhidos.
   - [ ] Devolve um `ConversionResponse` (record) com o resumo: quantas faixas
         foram adicionadas, puladas (duplicadas) e não encontradas.
+- [ ] Implementar o fluxo de prévia, revisão e confirmação na Fase 8:
+  - [ ] Mostrar as faixas originais na ordem da playlist ao lado dos candidatos, com links, pontuação e motivos da comparação.
+  - [ ] Distinguir correspondência forte, duvidosa, nenhum candidato adequado e busca não concluída por quota ou falha técnica.
+  - [ ] Permitir escolher alternativas já obtidas, excluir itens e solicitar nova pesquisa quando necessário, informando que novas consultas consomem quota.
+  - [ ] Permitir confirmar ou cancelar antes de criar a playlist; incluir apenas os itens selecionados.
+  - [ ] Preservar a prévia e as escolhas para retomada quando aplicável, sem refazer buscas desnecessárias.
+  - [ ] Testar que gerar a prévia e cancelar não escrevem no destino, e que confirmar respeita escolhas e ordem.
 - [ ] Criar a página em `src/main/resources/static/index.html`:
   - [ ] Um `<select>` com as duas opções de direção (Spotify → YouTube Music /
         YouTube Music → Spotify).
   - [ ] Um campo de texto para colar o link (ou ID) da playlist de origem.
   - [ ] Um campo de texto para o nome da playlist de destino.
-  - [ ] Um botão "Converter".
+  - [ ] Um botão "Analisar", uma tela de revisão e ações "Confirmar conversão" e "Cancelar".
   - [ ] Uma área que mostra o resultado (via JavaScript puro com `fetch()`
-        chamando `POST /convert`), incluindo estado de "carregando..." enquanto
+        chamando as operações de análise e confirmação), incluindo estado de "carregando..." enquanto
         a conversão roda e uma mensagem de erro clara se algo falhar.
 - [ ] Rodar `mvn spring-boot:run` e testar pelo navegador em
       `http://localhost:8080`.
@@ -228,5 +238,3 @@ via código, não tem o que a tela chamar.
 
 - [ ] Notificação via webhook (Discord/Slack) ao final de cada execução.
 - [ ] Paralelizar as buscas de matching com `ExecutorService`/`CompletableFuture`.
-- [ ] Revisão de matches de baixa confiança antes de confirmar a conversão
-      (mostrar na interface web os casos duvidosos para o usuário decidir).
