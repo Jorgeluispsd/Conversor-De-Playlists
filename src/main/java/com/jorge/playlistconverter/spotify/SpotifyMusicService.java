@@ -2,9 +2,13 @@ package com.jorge.playlistconverter.spotify;
 
 
 import com.jorge.playlistconverter.errors.OperationInterruptedException;
+import com.jorge.playlistconverter.errors.SpotifyAuthenticationException;
+import com.jorge.playlistconverter.errors.SpotifyPlaylistReadException;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
+import org.apache.hc.core5.http.ParseException;
 import se.michaelthelin.spotify.SpotifyApi;
+import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.IPlaylistItem;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
@@ -12,6 +16,8 @@ import se.michaelthelin.spotify.exceptions.detailed.ForbiddenException;
 import se.michaelthelin.spotify.exceptions.detailed.UnauthorizedException;
 import se.michaelthelin.spotify.model_objects.specification.Paging;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,17 +48,17 @@ public class SpotifyMusicService implements MusicService {
             throw new OperationInterruptedException(
                     "Leitura da playlist interrompida durante a autenticação Spotify.", e);
 
-        }catch (RuntimeException e){
-            throw e;
-
-        } catch (Exception e) {
-            throw new RuntimeException("Falha ao autenticar no Spotify", e);
+        }catch (NoSuchAlgorithmException e){
+            throw new SpotifyAuthenticationException(
+                    "Não foi possível gerar o desafio PKCE para autenticar no Spotify.", e);
         }
+
         return getPlaylistTracksWithApi(playlistId, spotifyAuthService.getSpotifyApi());
     }
 
     private Paging<PlaylistTrack> requestPlaylistPage(SpotifyApi api, String playlistId,
-                                                      int limit, int offset) throws Exception{
+                                                      int limit, int offset)
+            throws IOException, SpotifyWebApiException, ParseException {
 
         return api.getPlaylistItems(playlistId).
                 limit(limit)
@@ -62,7 +68,9 @@ public class SpotifyMusicService implements MusicService {
     }
 
     private Paging<PlaylistTrack> readPlaylistPage(SpotifyApi api, String playlistId,
-                                                   int limit, int offset) throws Exception{
+                                                   int limit, int offset)
+            throws IOException, SpotifyWebApiException, ParseException,
+            NoSuchAlgorithmException, InterruptedException{
 
         spotifyAuthService.ensureAuthenticated(READ_SCOPES);
 
@@ -115,13 +123,9 @@ public class SpotifyMusicService implements MusicService {
                 offset += limit;
             }
         } catch (ForbiddenException e) {
-            throw new RuntimeException(
-                    "Acesso negado à playlist. "
-                            + "Verifique as permissões da conta. "
-                            + "Para ler as faixas, você precisa ser proprietário "
-                            + "ou colaborador da playlist. "
-                            + "Se ela pertence a outra pessoa, peça ao criador "
-                            + "para adicioná-lo como colaborador.", e);
+            throw new SpotifyPlaylistReadException(
+                    "Spotify negou o acesso às faixas da playlist. "
+                            + "Verifique as permissões da conta e a disponibilidade da playlist.", e);
 
         }catch (InterruptedException e){
             Thread.currentThread().interrupt();
@@ -129,11 +133,21 @@ public class SpotifyMusicService implements MusicService {
             throw new OperationInterruptedException(
                     "Leitura da playlist Spotify interrompida.", e);
 
-        }catch (RuntimeException e){
-            throw e;
+        }catch (NoSuchAlgorithmException e){
+            throw new SpotifyAuthenticationException(
+                    "Não foi possível gerar o desafio PKCE durante a autenticação Spotify.", e);
 
-        }catch (Exception e){
-            throw new RuntimeException("Erro ao buscar tracks da playlist: " + e.getMessage(), e);
+        }catch (IOException e){
+            throw new SpotifyPlaylistReadException(
+                    "Falha de comunicação ao consultar as faixas da playlist Spotify.", e);
+
+        }catch (ParseException e){
+            throw new SpotifyPlaylistReadException(
+                    "Não foi possível interpretar a resposta da playlist Spotify.", e);
+
+        }catch (SpotifyWebApiException e){
+            throw new SpotifyPlaylistReadException(
+                    "A API do Spotify retornou um erro ao consultar as faixas da playlist.", e);
         }
 
         return songs;
