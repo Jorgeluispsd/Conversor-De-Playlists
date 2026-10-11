@@ -1,6 +1,7 @@
 package com.jorge.playlistconverter.state;
 
 import com.jorge.playlistconverter.enums.SyncRunStatus;
+import com.jorge.playlistconverter.errors.DatabaseInitializationException;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.state.sql.SqlResourceLoader;
 
@@ -45,7 +46,8 @@ public class H2SyncStateStore implements SyncStateStore{
         try {
             Files.createDirectories(appDir);
         } catch (IOException e) {
-            throw new RuntimeException("Erro ao criar diretório de dados", e);
+            throw new DatabaseInitializationException(
+                    "Não foi possível preparar o diretório de dados da aplicação.", e);
         }
 
         this.dbPath = appDir.resolve("data.db").toString();
@@ -72,7 +74,8 @@ public class H2SyncStateStore implements SyncStateStore{
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Erro ao inicializar o banco de dados", e);
+            throw new DatabaseInitializationException(
+                    "Não foi possível inicializar a estrutura do banco H2.", e);
         }
     }
 
