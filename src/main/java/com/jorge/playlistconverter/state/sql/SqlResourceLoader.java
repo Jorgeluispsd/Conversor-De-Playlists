@@ -1,6 +1,6 @@
 package com.jorge.playlistconverter.state.sql;
 
-import com.jorge.playlistconverter.errors.SqlResourceException;
+import com.jorge.playlistconverter.errors.persistence.SqlResourceException;
 
 import java.io.IOException;
 import java.io.InputStream;

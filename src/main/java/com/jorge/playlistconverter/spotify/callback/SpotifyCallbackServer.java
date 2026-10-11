@@ -1,8 +1,8 @@
 package com.jorge.playlistconverter.spotify.callback;
 
-import com.jorge.playlistconverter.errors.AuthorizationCallbackException;
-import com.jorge.playlistconverter.errors.AuthorizationDeniedException;
-import com.jorge.playlistconverter.errors.CallbackServerStartupException;
+import com.jorge.playlistconverter.errors.authorization.AuthorizationCallbackException;
+import com.jorge.playlistconverter.errors.authorization.AuthorizationDeniedException;
+import com.jorge.playlistconverter.errors.authorization.CallbackServerStartupException;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import lombok.extern.slf4j.Slf4j;

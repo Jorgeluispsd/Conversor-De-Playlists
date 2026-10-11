@@ -2,8 +2,8 @@ package com.jorge.playlistconverter.spotify;
 
 
 import com.jorge.playlistconverter.errors.OperationInterruptedException;
-import com.jorge.playlistconverter.errors.SpotifyAuthenticationException;
-import com.jorge.playlistconverter.errors.SpotifyPlaylistReadException;
+import com.jorge.playlistconverter.errors.spotify.SpotifyAuthenticationException;
+import com.jorge.playlistconverter.errors.spotify.SpotifyPlaylistReadException;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
 import org.apache.hc.core5.http.ParseException;

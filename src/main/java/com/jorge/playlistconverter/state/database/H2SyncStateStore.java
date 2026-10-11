@@ -1,24 +1,19 @@
-package com.jorge.playlistconverter.state;
+package com.jorge.playlistconverter.state.database;
 
 import com.jorge.playlistconverter.enums.SyncRunStatus;
-import com.jorge.playlistconverter.errors.DatabaseInitializationException;
-import com.jorge.playlistconverter.errors.SyncStateStorageException;
+import com.jorge.playlistconverter.errors.persistence.SyncStateStorageException;
 import com.jorge.playlistconverter.model.Song;
+import com.jorge.playlistconverter.state.SyncStateStore;
 import com.jorge.playlistconverter.state.sql.SqlResourceLoader;
 
-import java.util.Objects;
-import java.util.OptionalLong;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.OptionalLong;
 
-public class H2SyncStateStore implements SyncStateStore{
+public class H2SyncStateStore implements SyncStateStore {
 
-    private static final String SCHEMA_PATH = "sql/schema.sql";
     private static final String IS_ALREADY_SYNCED_PATH = "sql/queries/is_already_synced.sql";
     private static final String MARK_SYNCED_PATH = "sql/queries/mark_synced.sql";
     private static final String GET_HISTORY_PATH = "sql/queries/get_history.sql";
@@ -28,7 +23,6 @@ public class H2SyncStateStore implements SyncStateStore{
     private static final String FINISH_SYNC_RUN_PATH = "sql/queries/finish_sync_run.sql";
 
     private final String dbPath;
-    private final SqlResourceLoader sqlResourceLoader;
 
     private final String isAlreadySyncedSql;
     private final String markSyncedSql;
@@ -38,21 +32,8 @@ public class H2SyncStateStore implements SyncStateStore{
     private final String startSyncRunSql;
     private final String finishSyncRunSql;
 
-    public H2SyncStateStore(SqlResourceLoader sqlResourceLoader){
-        this.sqlResourceLoader = sqlResourceLoader;
-
-        String homeDir = System.getProperty("user.home");
-        Path appDir = Paths.get(homeDir, ".playlist-converter");
-
-        try {
-            Files.createDirectories(appDir);
-        } catch (IOException e) {
-            throw new DatabaseInitializationException(
-                    "Não foi possível preparar o diretório de dados da aplicação.", e);
-        }
-
-        this.dbPath = appDir.resolve("data.db").toString();
-        initializeDatabase();
+    public H2SyncStateStore(SqlResourceLoader sqlResourceLoader, H2DatabaseInitializer databaseInitializer){
+        this.dbPath = databaseInitializer.initialize();
 
         this.isAlreadySyncedSql = sqlResourceLoader.read(IS_ALREADY_SYNCED_PATH);
         this.markSyncedSql = sqlResourceLoader.read(MARK_SYNCED_PATH);
@@ -62,24 +43,6 @@ public class H2SyncStateStore implements SyncStateStore{
         this.startSyncRunSql = sqlResourceLoader.read(START_SYNC_RUN_PATH);
         this.finishSyncRunSql = sqlResourceLoader.read(FINISH_SYNC_RUN_PATH);
     }
-
-    private void initializeDatabase() {
-        String sql = sqlResourceLoader.read(SCHEMA_PATH);
-
-        try(Connection conn = getConnection();
-            Statement stmt = conn.createStatement()) {
-
-            for (String statement : sql.split(";")) {
-                if (!statement.trim().isEmpty()) {
-                    stmt.execute(statement.trim());
-                }
-            }
-        } catch (SQLException e) {
-            throw new DatabaseInitializationException(
-                    "Não foi possível inicializar a estrutura do banco H2.", e);
-        }
-    }
-
 
     private Connection getConnection() throws SQLException {
         return DriverManager.getConnection("jdbc:h2:" + dbPath);

@@ -1,4 +1,4 @@
-package com.jorge.playlistconverter.errors;
+package com.jorge.playlistconverter.errors.spotify;
 
 public class TokenStorageException extends RuntimeException{
 

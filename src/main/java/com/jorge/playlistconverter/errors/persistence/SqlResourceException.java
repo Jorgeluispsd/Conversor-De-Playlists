@@ -1,4 +1,4 @@
-package com.jorge.playlistconverter.errors;
+package com.jorge.playlistconverter.errors.persistence;
 
 public class SqlResourceException extends RuntimeException {
 

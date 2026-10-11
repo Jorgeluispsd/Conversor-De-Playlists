@@ -1,4 +1,4 @@
-package com.jorge.playlistconverter.errors;
+package com.jorge.playlistconverter.errors.authorization;
 
 public class AuthorizationDeniedException extends RuntimeException{
 

@@ -1,26 +1,11 @@
 package com.jorge.playlistconverter;
 
-import com.jorge.playlistconverter.enums.SyncRunStatus;
-import com.jorge.playlistconverter.matcher.TrackMatcher;
-import com.jorge.playlistconverter.model.MatchResult;
 import com.jorge.playlistconverter.model.Song;
-import com.jorge.playlistconverter.spotify.SpotifyAuthService;
-import com.jorge.playlistconverter.spotify.SpotifyMusicService;
-import com.jorge.playlistconverter.spotify.callback.SpotifyCallbackServer;
-import com.jorge.playlistconverter.state.H2SyncStateStore;
-import com.jorge.playlistconverter.youtube.YoutubeMusicService;
-import io.github.cdimascio.dotenv.Dotenv;
+import com.jorge.playlistconverter.state.database.H2SyncStateStore;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-
-import java.util.List;
-import java.util.OptionalLong;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 @SpringBootApplication
 public class PlaylistConverterApplication {

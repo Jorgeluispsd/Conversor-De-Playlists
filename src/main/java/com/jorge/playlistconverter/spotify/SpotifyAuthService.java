@@ -1,9 +1,9 @@
 package com.jorge.playlistconverter.spotify;
 
-import com.jorge.playlistconverter.errors.AuthorizationCallbackException;
-import com.jorge.playlistconverter.errors.AuthorizationDeniedException;
-import com.jorge.playlistconverter.errors.AuthorizationTimeoutException;
-import com.jorge.playlistconverter.errors.SpotifyAuthenticationException;
+import com.jorge.playlistconverter.errors.authorization.AuthorizationCallbackException;
+import com.jorge.playlistconverter.errors.authorization.AuthorizationDeniedException;
+import com.jorge.playlistconverter.errors.authorization.AuthorizationTimeoutException;
+import com.jorge.playlistconverter.errors.spotify.SpotifyAuthenticationException;
 import com.jorge.playlistconverter.spotify.authorization.SpotifyAuthorizationGenerator;
 import com.jorge.playlistconverter.spotify.callback.CallbackSession;
 import com.jorge.playlistconverter.spotify.callback.SpotifyCallbackServer;

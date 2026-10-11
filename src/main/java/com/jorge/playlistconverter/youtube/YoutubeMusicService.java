@@ -5,8 +5,8 @@ import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.PlaylistItem;
 import com.google.api.services.youtube.model.PlaylistItemListResponse;
 import com.google.api.services.youtube.model.SearchListResponse;
-import com.jorge.playlistconverter.errors.YoutubePlaylistReadException;
-import com.jorge.playlistconverter.errors.YoutubeSearchException;
+import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistReadException;
+import com.jorge.playlistconverter.errors.youtube.YoutubeSearchException;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
 
