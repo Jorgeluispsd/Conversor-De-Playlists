@@ -125,30 +125,35 @@ public class SpotifyCallbackServer {
                     }
 
                     case AUTHORIZATION_DENIED -> {
-                        sendCallbackResponse(exchange, HTTP_BAD_REQUEST,
-                                "Autorização não concluida. Volte ao terminal.");
-
                         future.completeExceptionally(new AuthorizationDeniedException(
                                 "Spotify não autorizou o acesso: " + result.error()));
+
+                        sendCallbackResponse(exchange, HTTP_BAD_REQUEST,
+                                "Autorização não concluida. Volte ao terminal.");
                     }
 
                     case MISSING_CODE -> {
-                        sendCallbackResponse(exchange, HTTP_BAD_REQUEST,
-                                "Código de autorização ausente.");
-
                         future.completeExceptionally(new AuthorizationCallbackException(
                                 "Callback sem código de autorização"));
+
+                        sendCallbackResponse(exchange, HTTP_BAD_REQUEST,
+                                "Código de autorização ausente.");
                     }
 
                     case SUCCESS -> {
+                        future.complete(result.code());
+
                         sendCallbackResponse(exchange, HTTP_OK,
                                 "Autorização recebida. Volte ao terminal para acompanhar o resultado.");
-
-                        future.complete(result.code());
                     }
                 }
-            }catch (Exception e){
-                future.completeExceptionally(e);
+            }catch (IOException e) {
+                log.warn("Não foi possível enviar a resposta HTTP do callback. Tipo: {}",
+                        e.getClass().getSimpleName());
+
+            }catch (RuntimeException e){
+                future.completeExceptionally(new AuthorizationCallbackException(
+                        "Falha ao processar o retorno de autorização do Spotify.", e));
 
             }finally {
                 exchange.close();
