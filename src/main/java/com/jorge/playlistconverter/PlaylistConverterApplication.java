@@ -1,17 +1,24 @@
 package com.jorge.playlistconverter;
 
 import com.jorge.playlistconverter.model.Song;
+import com.jorge.playlistconverter.spotify.SpotifyMusicService;
 import com.jorge.playlistconverter.state.database.H2SyncStateStore;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
+import java.util.List;
+
+
 @SpringBootApplication
 public class PlaylistConverterApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(PlaylistConverterApplication.class, args);
+        SpringApplication application = new SpringApplication(PlaylistConverterApplication.class);
+
+        application.setHeadless(false);
+        application.run(args);
     }
 
     /**
@@ -24,7 +31,7 @@ public class PlaylistConverterApplication {
      * Fase 4   -> passar (faixa, candidatos) para o TrackMatcher e printar o resultado
      */
 
-    /*
+
     @Bean
     CommandLineRunner run(SpotifyMusicService spotifyMusicService){
         return args -> {
@@ -61,7 +68,7 @@ public class PlaylistConverterApplication {
         };
     }
 
-*/
+
 
 
 
@@ -132,7 +139,7 @@ public class PlaylistConverterApplication {
     }
      */
 
-
+/*
     @Bean
     CommandLineRunner runner(H2SyncStateStore store){
         return args -> {
@@ -163,6 +170,7 @@ public class PlaylistConverterApplication {
         };
     }
 
+ */
 
 /*
     @Bean
@@ -309,5 +317,25 @@ public class PlaylistConverterApplication {
 
  */
 
+    /*
+    @Bean
+    CommandLineRunner desktopDiagnosticRunner(){
+        return args -> {
+            boolean headless = GraphicsEnvironment.isHeadless();
+            boolean desktopSupported = Desktop.isDesktopSupported();
+
+            boolean browseSupported = desktopSupported
+                    && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE);
+
+            System.out.println("=== Diagnóstico do navegador ===");
+            System.out.println("java.awt.headless: "
+                    + System.getProperty("java.awt.headless"));
+            System.out.println("Ambiente headless: " + headless);
+            System.out.println("Desktop disponível: " + desktopSupported);
+            System.out.println("BROWSE disponível: " + browseSupported);
+        };
+    }
+
+     */
 
 }
