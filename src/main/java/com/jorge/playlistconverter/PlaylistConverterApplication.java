@@ -147,7 +147,7 @@ public class PlaylistConverterApplication {
     }
      */
 
-    /*
+
     @Bean
     CommandLineRunner runner(H2SyncStateStore store){
         return args -> {
@@ -178,7 +178,7 @@ public class PlaylistConverterApplication {
         };
     }
 
-     */
+
 /*
     @Bean
     CommandLineRunner runner(H2SyncStateStore store) {
@@ -280,7 +280,7 @@ public class PlaylistConverterApplication {
     */
 
 
-
+/*
     @Bean
     CommandLineRunner run(YoutubeMusicService youtubeMusicService) {
         return args -> {
@@ -321,6 +321,8 @@ public class PlaylistConverterApplication {
 
         };
     }
+
+ */
 
 
 }

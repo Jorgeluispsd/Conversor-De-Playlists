@@ -2,6 +2,7 @@ package com.jorge.playlistconverter.state;
 
 import com.jorge.playlistconverter.enums.SyncRunStatus;
 import com.jorge.playlistconverter.errors.DatabaseInitializationException;
+import com.jorge.playlistconverter.errors.SyncStateStorageException;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.state.sql.SqlResourceLoader;
 
@@ -102,7 +103,7 @@ public class H2SyncStateStore implements SyncStateStore{
             }
 
         }catch (SQLException e) {
-            throw new RuntimeException("Erro ao criar sync_job", e);
+            throw new SyncStateStorageException("Erro ao criar sync_job", e);
         }
     }
 
@@ -119,7 +120,7 @@ public class H2SyncStateStore implements SyncStateStore{
 
             }
         }catch (SQLException e) {
-            throw new RuntimeException("Erro ao verificar se a faixa já foi sincronizada", e);
+            throw new SyncStateStorageException("Erro ao verificar se a faixa já foi sincronizada", e);
         }
     }
 
@@ -141,7 +142,7 @@ public class H2SyncStateStore implements SyncStateStore{
 
             pstmt.executeUpdate();
         }catch (SQLException e) {
-            throw new RuntimeException("Erro ao marcar a faixa como sincronizada", e);
+            throw new SyncStateStorageException("Erro ao marcar a faixa como sincronizada", e);
         }
     }
 
@@ -161,7 +162,7 @@ public class H2SyncStateStore implements SyncStateStore{
             }
 
         }catch (SQLException e) {
-            throw new RuntimeException("Erro ao obter o histórico de sincronização", e);
+            throw new SyncStateStorageException("Erro ao obter o histórico de sincronização", e);
         }
 
         return history;
@@ -184,7 +185,7 @@ public class H2SyncStateStore implements SyncStateStore{
             }
 
         }catch (SQLException e){
-            throw new RuntimeException("Erro ao buscar trabalho de sincronização", e);
+            throw new SyncStateStorageException("Erro ao buscar trabalho de sincronização", e);
         }
     }
 
@@ -198,7 +199,7 @@ public class H2SyncStateStore implements SyncStateStore{
 
         try {
             return createSyncJob(sourcePlaylistId, destinationPlaylistId, direction);
-        }catch (RuntimeException e){
+        }catch (SyncStateStorageException e){
             if (!isDuplicatedKey(e)){
                 throw e;
             }
@@ -208,7 +209,7 @@ public class H2SyncStateStore implements SyncStateStore{
         }
     }
 
-    private boolean isDuplicatedKey(RuntimeException exception){
+    private boolean isDuplicatedKey(SyncStateStorageException exception){
         return exception.getCause() instanceof SQLException sqlException
                 && "23505".equals(sqlException.getSQLState());
     }
@@ -230,7 +231,7 @@ public class H2SyncStateStore implements SyncStateStore{
             }
 
         }catch (SQLException e){
-            throw new RuntimeException("Erro ao iniciar execução de sincronização", e);
+            throw new SyncStateStorageException("Erro ao iniciar execução de sincronização", e);
         }
     }
 
@@ -259,7 +260,7 @@ public class H2SyncStateStore implements SyncStateStore{
             }
 
         }catch (SQLException e){
-            throw new RuntimeException("Erro ao finalizar execução de sincronização: ", e);
+            throw new SyncStateStorageException("Erro ao finalizar execução de sincronização: ", e);
         }
     }
 }
