@@ -1,8 +1,12 @@
 package com.jorge.playlistconverter.spotify;
 
 import com.jorge.playlistconverter.errors.OperationInterruptedException;
+import com.jorge.playlistconverter.errors.spotify.SpotifyRequestLimitException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import se.michaelthelin.spotify.SpotifyApi;
+import se.michaelthelin.spotify.exceptions.detailed.TooManyRequestsException;
+import se.michaelthelin.spotify.requests.data.playlists.GetPlaylistItemsRequest;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -54,5 +58,46 @@ class SpotifyMusicServiceTest {
 
         verify(authService, times(2)).ensureAuthenticated(anyString());
         verify(authService, times(1)).getSpotifyApi();
+    }
+
+    @Test
+    void shouldPreserveRetryAfterWhenSpotifyLimitsRequests() throws Exception{
+        TooManyRequestsException original = new TooManyRequestsException("Limite simulado", 30);
+
+        assertRequestLimit(original, 30);
+    }
+
+    @Test
+    void shouldHandleRequestLimitWithoutRetryAfter() throws Exception{
+        TooManyRequestsException original = new TooManyRequestsException("Limite simulado");
+
+        assertRequestLimit(original, null);
+    }
+
+    private void assertRequestLimit(TooManyRequestsException original, Integer expectedRetryAfter) throws Exception{
+        SpotifyAuthService authService = mock(SpotifyAuthService.class);
+        SpotifyApi api = mock(SpotifyApi.class);
+
+        GetPlaylistItemsRequest.Builder builder =
+                mock(GetPlaylistItemsRequest.Builder.class, RETURNS_SELF);
+
+        GetPlaylistItemsRequest request = mock(GetPlaylistItemsRequest.class);
+
+        when(authService.getSpotifyApi()).thenReturn(api);
+        when(api.getPlaylistItems("test-playlist")).thenReturn(builder);
+        when(builder.build()).thenReturn(request);
+        when(request.execute()).thenThrow(original);
+
+        SpotifyMusicService service = new SpotifyMusicService(authService);
+
+        SpotifyRequestLimitException result = assertThrows(
+                SpotifyRequestLimitException.class,
+                () -> service.getPlaylistTracks("test-playlist"));
+
+        assertSame(original, result.getCause());
+        assertEquals(expectedRetryAfter, result.getRetryAfterSeconds());
+
+        verify(request, times(1)).execute();
+        verify(authService, never()).invalidateAccessToken();
     }
 }

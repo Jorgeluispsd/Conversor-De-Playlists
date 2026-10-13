@@ -4,11 +4,13 @@ package com.jorge.playlistconverter.spotify;
 import com.jorge.playlistconverter.errors.OperationInterruptedException;
 import com.jorge.playlistconverter.errors.spotify.SpotifyAuthenticationException;
 import com.jorge.playlistconverter.errors.spotify.SpotifyPlaylistReadException;
+import com.jorge.playlistconverter.errors.spotify.SpotifyRequestLimitException;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
 import org.apache.hc.core5.http.ParseException;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
+import se.michaelthelin.spotify.exceptions.detailed.TooManyRequestsException;
 import se.michaelthelin.spotify.model_objects.IPlaylistItem;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
@@ -141,9 +143,23 @@ public class SpotifyMusicService implements MusicService {
             throw new SpotifyPlaylistReadException(
                     "Falha de comunicação ao consultar as faixas da playlist Spotify.", e);
 
-        }catch (ParseException e){
+        }catch (ParseException e) {
             throw new SpotifyPlaylistReadException(
                     "Não foi possível interpretar a resposta da playlist Spotify.", e);
+
+        }catch (TooManyRequestsException e){
+            Integer retryAfterSeconds = e.getRetryAfter() > 0 ? e.getRetryAfter() : null;
+
+            String message = retryAfterSeconds != null
+                    ? "Spotify limitou as requisições. "
+                        + "A leitura da playlist não foi concluída. "
+                        + "Aguarde pelo menos " + retryAfterSeconds
+                        + " segundos antes de tentar novamente."
+                    : "Spotify limitou as requisições. "
+                        + "A leitura da playlist não foi concluída. "
+                        + "Não foi informado um prazo de espera válido.";
+
+            throw new SpotifyRequestLimitException(message, retryAfterSeconds, e);
 
         }catch (SpotifyWebApiException e){
             throw new SpotifyPlaylistReadException(
