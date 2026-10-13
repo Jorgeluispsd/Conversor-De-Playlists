@@ -1,11 +1,13 @@
 package com.jorge.playlistconverter.youtube;
 
+import com.google.api.client.googleapis.json.GoogleJsonError;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.PlaylistItem;
 import com.google.api.services.youtube.model.PlaylistItemListResponse;
 import com.google.api.services.youtube.model.SearchListResponse;
 import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistReadException;
+import com.jorge.playlistconverter.errors.youtube.YoutubeQuotaExceededException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeSearchException;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
@@ -67,6 +69,12 @@ public class YoutubeMusicService implements MusicService {
             return songs;
 
         }catch (GoogleJsonResponseException e){
+            if (isQuotaExceeded(e)){
+                throw new YoutubeQuotaExceededException("A quota da API do YouTube foi esgotada. "
+                        + "A leitura da playlist não foi concluída. "
+                        + "Consulte a quota do projeto antes de tentar novamente.", e);
+            }
+
             throw new YoutubePlaylistReadException("A API do YouTube recusou a leitura da playlist. "
              + "Código HTTP: " + e.getStatusCode() + ".", e);
 
@@ -103,6 +111,12 @@ public class YoutubeMusicService implements MusicService {
                     .toList();
 
         }catch (GoogleJsonResponseException e){
+            if (isQuotaExceeded(e)){
+                throw new YoutubeQuotaExceededException("A quota da API do YouTube foi esgotada. "
+                        + "A busca de candidatos não foi concluída. "
+                        + "Consulte a quota do projeto antes de tentar novamente.", e);
+            }
+
             throw new YoutubeSearchException(
                     "A API do YouTube recusou a busca de candidatos. "
                             + "Código HTTP: " + e.getStatusCode() + ".", e);
@@ -112,6 +126,17 @@ public class YoutubeMusicService implements MusicService {
         }
         // Dica: peça uns 3-5 resultados por busca, não só o primeiro — o TrackMatcher
         // (Fase 4) vai escolher o melhor entre eles.
+    }
+
+    private boolean isQuotaExceeded(GoogleJsonResponseException exception){
+        GoogleJsonError details = exception.getDetails();
+
+        if (details == null || details.getErrors() == null){
+            return false;
+        }
+
+        return details.getErrors().stream()
+                .anyMatch(error -> error != null && "quotaExceeded".equals(error.getReason()));
     }
 
     @Override
