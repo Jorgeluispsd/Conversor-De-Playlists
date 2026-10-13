@@ -5,26 +5,24 @@ import com.jorge.playlistconverter.model.Song;
 import java.util.List;
 
 /**
- * Contrato comum entre Spotify e YouTube Music.
- * O PlaylistConverter (a ser criado na Fase 6) só enxerga esta interface —
- * não sabe nem se importa se está falando com Spotify ou YouTube. Isso é o
- * que permite a conversão nos dois sentidos sem duplicar lógica.
+ * Contrato comum de leitura, busca e escrita para Spotify e YouTube.
+ * O PlaylistConverter da Fase 6 coordenará esses serviços com o histórico de sincronização.
+ * Nem todas as operações estão implementadas nas duas plataformas; consultar seus TODOs.
  */
 public interface MusicService {
 
-    // Fase 2 (Spotify) / Fase 7 (YouTube)
+    // Leitura paginada já implementada em Spotify e YouTube.
     List<Song> getPlaylistTracks(String playlistId);
 
-    // Fase 3-4: buscar um candidato equivalente no serviço.
-    // Por enquanto retorna Optional<Track> só do melhor resultado bruto da API,
-    // sem cálculo de similaridade ainda — isso fica a cargo do TrackMatcher.
+    // Retorna uma lista de candidatos; comparação fica no TrackMatcher. YouTube implementado; Spotify pendente da Fase 7.
     List<Song> searchCandidates(Song sourceSong);
 
-    // Fase 6: criação real da playlist de destino
+    // Fase 6: criar playlist no destino autorizado e retornar o ID.
     String createPlaylist(String name);
 
+    // Fase 6: inserir os IDs selecionados na ordem recebida, respeitando o endpoint de cada plataforma.
     void addTracks(String playlistId, List<String> trackIds);
 
-    // Fase 5-6: usado para checar duplicata antes de adicionar
+    // TODO (Fase 6): consultar o destino para checar itens presentes; complementar o histórico, sem confundir os dois conceitos.
     List<Song> getPlaylistTracksAlreadyAdded(String playlistId);
 }

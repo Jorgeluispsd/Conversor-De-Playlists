@@ -29,19 +29,17 @@ Limitações dos provedores e decisões de escopo: [PROJECT_LIMITATIONS.md](PROJ
       responsável por:
   - [X] Montar a URL de autorização (Authorization Code + PKCE, escopo
         `playlist-read-private`).
-  - [X] Implementar abertura da URL com fallback manual; diagnóstico do suporte no ambiente atual ainda pendente.
+  - [X] Implementar abertura da URL com fallback manual; modo headless desabilitado no main e abertura automática validada no ambiente local.
   - [X] Subir um servidor HTTP local simples (ex: `com.sun.net.httpserver.HttpServer`)
         só para capturar o `code` que o Spotify devolve no redirect.
   - [X] Trocar o `code` por um `access_token` + `refresh_token` via
-        `spotifyApi.authorizationCodePKCERequest(...)`.
+        `spotifyApi.authorizationCodePKCE(...)`.
 - [X] Testar manualmente: rodar o fluxo e confirmar no console que recebeu um
       access token (não precisa usá-lo ainda).
 - [X] Implementar tratamento para `access_token` expirado (curto prazo, ~1 hora):
       detectar a resposta de erro do Spotify e renovar automaticamente usando
       o `refresh_token` salvo, sem exigir novo login do usuário.
-- [X] Implementar tratamento para `refresh_token` expirado (`invalid_grant`,
-      acontece 6 meses após a autorização original, mudança da Spotify de
-      2026): quando esse erro específico vier, descartar o token salvo e
+- [X] Implementar tratamento para `refresh_token` expirado (`invalid_grant`): quando esse erro específico vier, descartar o token salvo e
       disparar o fluxo de login novamente (reabrir o navegador), em vez de
       tentar renovar de novo — uma nova tentativa de refresh vai falhar do
       mesmo jeito.
@@ -79,9 +77,7 @@ Estado atual: leitura autenticada por Authorization Code + PKCE via SpotifyAuthS
 
 ## Fase 4 — Matching visual
 
-- [X] Escolher uma lib de similaridade de string (ex: adicionar
-      `info.debatty:java-string-similarity` no `../pom.xml`) ou implementar
-  Levenshtein à mão como exercício.
+- [X] Usar Jaro-Winkler do Apache Commons Text para comparar títulos e artistas.
 - [X] Em `TrackMatcher.findBestMatch(...)`:
   - [X] Normalizar título/artista: minúsculo, remover acentos, remover trechos
         entre parênteses/colchetes (`(Official Video)`, `[Lyrics]`, etc.).
@@ -118,7 +114,7 @@ a Fase 5.)*
 
 ---
 
-## Refatoração e validação antes da Fase 6 — atualizado em 10/10/2026
+## Refatoração e validação antes da Fase 6 — atualizado em 13/10/2026
 
 - [X] Separar callback, sessão, resultado e status no package spotify.callback.
 - [X] Extrair geração da autorização PKCE e injetar os componentes de autenticação.
@@ -131,17 +127,26 @@ a Fase 5.)*
 - [X] Criar dois testes de interrupção do SpotifyMusicService; manter os 19 testes do matcher.
 - [X] Configurar agente Mockito no Maven e atualizar Logback para 1.6.5.
 - [X] Validar testes Maven e execução normal; busca e leitura YouTube testadas manualmente por Jorge.
-- [ ] Tratar erros de leitura de recursos SQL e persistência H2, preservando duplicatas e regras do histórico.
-- [ ] Extrair preparação do banco em bloco separado.
-- [ ] Concluir revisão dos tratamentos restantes de callback/autenticação e investigar fallback do navegador.
-- [ ] Criar testes isolados pertinentes para os cenários de falha ainda não exercitados.
-- [ ] Tratar limites das APIs: motivo quotaExceeded no YouTube; distinguir rate limit e quota do Spotify, respeitar Retry-After quando aplicável e limitar tentativas.
-- [ ] Validar esses limites com respostas simuladas, sem consumir quota real.
-- [ ] Concluir atualização de README, READMEBASE, comentários e TODOs.
+- [X] Tratar erros de leitura de recursos SQL e persistência H2, preservando duplicatas e regras do histórico.
+- [X] Extrair preparação do banco para H2DatabaseInitializer, injetado no H2SyncStateStore.
+- [X] Preservar resultados do callback antes de responder ao navegador e corrigir o fallback causado por headless=true.
+- [X] Testar falha de resposta HTTP do callback, duplicatas H2 e limites das APIs com cenários isolados.
+- [X] Identificar quotaExceeded no YouTube e HTTP 429 no Spotify, preservando causas e Retry-After positivo, sem repetição imediata.
+- [X] Validar limites com 6 testes YouTube e 2 novos testes Spotify, sem consumir quota real; suíte completa com 36 testes aprovados.
+- [X] Atualizar README, READMEBASE, TASKS e revisão para refletir o progresso atual.
+- [X] Organizar exceções em errors.authorization, errors.spotify, errors.youtube e errors.persistence.
+- [X] Atualizar comentários/TODOs para refletir implementações atuais e detalhar escrita, busca inversa e duplicatas pendentes.
+- [ ] Revisar outros cenários de erro conforme necessidades da Fase 6 (decisão de Jorge).
 
 ---
 
 ## Fase 6 — Conversão real (escrita)
+
+Os serviços já identificam limites e encerram a operação com exceções específicas. Espera e retomada automáticas ainda não estão implementadas.
+
+- [ ] Definir no orquestrador uma política de espera/retomada com tentativas limitadas e preservação de interrupção; respeitar Retry-After quando aplicável, sem repetir imediatamente quota esgotada.
+- [ ] Avaliar como obter o motivo estruturado do 429: a biblioteca Spotify 10.0.0 não preserva QUOTA_EXCEEDED. Não deduzir o tipo de limitação apenas pelo prazo ou texto da mensagem.
+- [ ] Reavaliar os demais erros e ampliar testes conforme as operações da conversão forem implementadas.
 
 - [ ] Estender a autenticação Spotify para incluir escopo de escrita
       (`playlist-modify-private` ou `playlist-modify-public`).

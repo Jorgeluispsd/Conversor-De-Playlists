@@ -17,11 +17,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Fase 3: implementar searchCandidates usando search.list (chave de API simples,
- * sem OAuth — leitura/busca não exige login de usuário).
- * Fase 6: implementar createPlaylist / addTracks (aqui sim exige OAuth de usuário,
- * porque é uma escrita na conta dele).
- * Fase 7: implementar getPlaylistTracks (para a conversão inversa).
+ * Leitura de playlists e busca de candidatos no YouTube usando chave de API.
+ * Quota esgotada é identificada por quotaExceeded, sem repetição imediata.
+ * Fase 6: adicionar OAuth do usuário para criar playlists e inserir vídeos no destino.
  */
 public class YoutubeMusicService implements MusicService {
 
@@ -35,7 +33,7 @@ public class YoutubeMusicService implements MusicService {
 
     @Override
     public List<Song> getPlaylistTracks(String playlistId) {
-        // TODO (Fase 7): usar playlistItems.list
+        // Leitura implementada com playlistItems.list e nextPageToken, em páginas de até 50 itens.
         try {
             List<Song> songs = new ArrayList<>();
             String pageToken = null;
@@ -82,12 +80,12 @@ public class YoutubeMusicService implements MusicService {
             throw new YoutubePlaylistReadException(
                     "Falha de comunicação ao consultar a playlist do YouTube.", e);
         }
-        //throw new UnsupportedOperationException("TODO: Fase 7 (conversão inversa)");
+
     }
 
     @Override
     public List<Song> searchCandidates(Song sourceSong) {
-        // TODO (Fase 3): montar query "artista + título" e chamar youtube.search().list(...)
+        // Busca implementada: uma chamada search.list por faixa, retornando até cinco candidatos.
         String query = sourceSong.artist() + " " + sourceSong.title();
 
         try {
@@ -124,8 +122,7 @@ public class YoutubeMusicService implements MusicService {
         } catch (IOException e) {
             throw new YoutubeSearchException("Falha de comunicação ao buscar candidatos no YouTube.", e);
         }
-        // Dica: peça uns 3-5 resultados por busca, não só o primeiro — o TrackMatcher
-        // (Fase 4) vai escolher o melhor entre eles.
+        // Os candidatos retornados são comparados pelo TrackMatcher fora deste serviço.
     }
 
     private boolean isQuotaExceeded(GoogleJsonResponseException exception){
@@ -141,19 +138,19 @@ public class YoutubeMusicService implements MusicService {
 
     @Override
     public String createPlaylist(String name) {
-        // TODO (Fase 6)
+        // TODO (Fase 6): usar cliente com OAuth do usuário, criar playlist com playlists.insert e retornar o ID.
         throw new UnsupportedOperationException("TODO: Fase 6");
     }
 
     @Override
     public void addTracks(String playlistId, List<String> trackIds) {
-        // TODO (Fase 6)
+        // TODO (Fase 6): inserir videoIds com OAuth e playlistItems.insert, preservando ordem e tratando quota/falhas parciais.
         throw new UnsupportedOperationException("TODO: Fase 6");
     }
 
     @Override
     public List<Song> getPlaylistTracksAlreadyAdded(String playlistId) {
-        // TODO (Fase 5)
+        // TODO (Fase 6): consultar itens já presentes no destino com getPlaylistTracks e coordenar duplicatas com o histórico H2.
         throw new UnsupportedOperationException("TODO: Fase 5");
     }
 }

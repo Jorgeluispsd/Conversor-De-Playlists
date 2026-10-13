@@ -18,24 +18,31 @@ Em desenvolvimento — construído em fases, cada uma validada antes de avançar
 - [x] Busca de músicas equivalentes no YouTube
 - [x] Matching e cálculo de confiança entre faixas
 - [x] Persistência do histórico (H2) e prevenção de duplicatas
+- [x] Leitura de playlists do YouTube
+- [x] Tratamento específico de quota YouTube e de HTTP 429 Spotify
+- [x] 36 testes automatizados aprovados (13/10/2026)
 - [ ] Conversão real (Spotify → YouTube Music)
 - [ ] Conversão inversa (YouTube Music → Spotify)
+- [ ] Interface web com prévia, revisão e confirmação (Fase 8)
 
 ## ⚙️ Como funciona
 
-A arquitetura é pensada para suportar as duas direções de conversão sem duplicar lógica: `SpotifyMusicService` e `YoutubeMusicService` implementam a mesma interface `MusicService`, e um orquestrador central lida com a leitura da origem, busca de equivalência, matching e escrita no destino — indiferente de qual serviço é origem e qual é destino.
+A arquitetura é pensada para suportar as duas direções de conversão: `SpotifyMusicService` e `YoutubeMusicService` implementam a interface `MusicService`. Leitura, busca no YouTube, matching e persistência já existem como componentes. O orquestrador `PlaylistConverter`, a autenticação Google para escrita e a criação/inserção de faixas serão implementados na Fase 6.
 
 ```
-model/       -> Track, MatchResult — estruturas de dados comuns aos dois serviços
+model/       -> Song, MatchResult — estruturas de dados comuns aos dois serviços
 service/     -> MusicService — contrato comum entre Spotify e YouTube
 spotify/     -> implementação do lado Spotify
 youtube/     -> implementação do lado YouTube
 matcher/     -> lógica de similaridade para encontrar a música equivalente
 state/       -> histórico de sincronizações e controle de duplicata (H2)
+state/database/ -> H2DatabaseInitializer e H2SyncStateStore
+state/sql/   -> SqlResourceLoader
+errors/      -> exceções por autorização, Spotify, YouTube e persistência
 config/      -> configuração dos clientes de API (injeção de dependência via Spring)
 ```
 
-Antes de qualquer música ser adicionada de fato, cada faixa passa por um cálculo de confiança de match — evitando trocar uma faixa original por um cover, remix ou versão ao vivo por engano.
+O matcher compara os candidatos e aplica penalidades para versões diferentes. Sua pontuação indica semelhança, sem garantir que o áudio seja o mesmo. A revisão e confirmação pelo usuário estão planejadas para a Fase 8.
 
 ## 🛠️ Tecnologias
 
@@ -74,26 +81,38 @@ Antes de qualquer música ser adicionada de fato, cada faixa passa por um cálcu
    YOUTUBE_API_KEY=
    ```
 
-5. Rode a aplicação:
+5. Rode a aplicação pelo IntelliJ usando `PlaylistConverterApplication`, ou pelo Maven:
    ```
    mvn spring-boot:run
    ```
+
+Os `CommandLineRunner` atuais são laboratórios manuais: habilite apenas o cenário que deseja validar. Executar a aplicação ainda não realiza uma conversão completa. O `main` configura `headless=false` para permitir abertura do navegador no ambiente local; a sessão Spotify salva é reutilizada nas execuções seguintes.
+
+### Testes e banco local
+
+Execute `mvn test` para rodar os 36 testes. Se `mvn` não estiver no PATH, use o Maven do IntelliJ: pressione Ctrl duas vezes e execute `mvn test` pelo Run Anything.
+
+Os testes usam mocks e um banco H2 temporário, sem chamadas reais às APIs nem acesso ao banco pessoal. A suíte inclui 19 testes do matcher, 4 do serviço Spotify, 4 do callback, 3 da persistência H2 e 6 do serviço YouTube.
+
+Os dados locais ficam em `~/.playlist-converter/`: `spotify_tokens.json` guarda a sessão e o banco usa o caminho base `data.db` (o H2 acrescenta sua extensão ao arquivo). O console H2 informa seu link nos logs da aplicação. Use a URL JDBC `jdbc:h2:~/.playlist-converter/data.db` e as mesmas credenciais usadas na criação do banco. Mantenha a aplicação rodando e execute, por exemplo:
+
+```sql
+SELECT * FROM sync_job;
+SELECT * FROM sync_run;
+SELECT * FROM synced_track;
+```
 
 > ⚠️ **Nenhuma credencial deste projeto é distribuída publicamente.** Cada pessoa que for rodar o projeto precisa criar seu próprio app no Spotify e sua própria chave no Google Cloud — é assim que projetos open source que integram com APIs de terceiros funcionam. O `.env` nunca é commitado (veja `.gitignore`).
 
 ## 📌 Limitações conhecidas
 
-### Spotify - Restrição de acesso a playlists
+### Acesso e quotas
 
-Devido a mudanças recentes na política do Spotify, **não é possível acessar playlists de terceiros** (mesmo que sejam públicas). O Spotify agora permite acessar apenas:
-- Playlists que você criou
-- Playlists nas quais você é colaborador
+O acesso às playlists depende das permissões da conta, dos escopos e das regras vigentes do provedor. O serviço informa acesso negado quando recebe HTTP 403; esse código sozinho não determina a causa. Salvar uma playlist na biblioteca não deve ser apresentado como garantia de acesso pela API.
 
-Se você tentar acessar uma playlist de terceiro, receberá uma mensagem explicando a restrição. Para converter uma playlist de terceiro, você precisa:
-1. Salvar a playlist na sua biblioteca do Spotify, ou
-2. Pedir ao criador para torná-la colaborativa
+O projeto trabalha com as quotas padrão; solicitar aumento está fora do escopo atual. Uma playlist inédita com 280 músicas pode exigir 280 pesquisas no YouTube e três janelas de quota padrão. Os detalhes e decisões estão em [docs/PROJECT_LIMITATIONS.md](docs/PROJECT_LIMITATIONS.md).
 
-Esta limitação é imposta pela API do Spotify e não pode ser contornada pelo aplicativo.
+Quando recebe `quotaExceeded`, o YouTube lança uma exceção específica. No Spotify, HTTP 429 preserva o prazo `Retry-After` quando positivo. A biblioteca atual não preserva o motivo estruturado `QUOTA_EXCEEDED`, portanto o projeto não consegue distinguir os dois tipos de limitação com segurança. Os serviços encerram a operação sem retornar uma lista parcial como resultado completo; espera automática e retomada serão avaliadas na Fase 6.
 
 ### Outras limitações
 

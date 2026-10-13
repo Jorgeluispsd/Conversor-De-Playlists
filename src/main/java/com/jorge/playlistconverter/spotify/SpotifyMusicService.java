@@ -24,10 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Fase 1: autenticar (Authorization Code + PKCE, escopo playlist-read-private).
- * Fase 2: implementar getPlaylistTracks — lembrar de paginar (100 itens por página).
- * Fase 3: implementar searchCandidates usando o endpoint de Search da API.
- * Fase 6: implementar createPlaylist / addTracks (exige escopo de escrita).
+ * Leitura de playlists Spotify com Authorization Code + PKCE, paginação de 50 itens
+ * e uma nova tentativa após 401. Limitações 429 preservam Retry-After sem retry automático.
+ * Escrita no destino será implementada na Fase 6; busca Spotify pertence à Fase 7.
  */
 public class SpotifyMusicService implements MusicService {
 
@@ -88,7 +87,7 @@ public class SpotifyMusicService implements MusicService {
     }
 
     private List<Song> getPlaylistTracksWithApi(String playlistId, SpotifyApi api) {
-        // TODO (Fase 2): spotifyApi.getPlaylistsItems(playlistId)... + paginação
+        // Paginação e mapeamento já implementados; a leitura termina quando a página não contém itens.
         List<Song> songs = new ArrayList<>();
         int limit = 50;
         int offset = 0;
@@ -171,27 +170,25 @@ public class SpotifyMusicService implements MusicService {
 
     @Override
     public List<Song> searchCandidates(Song sourceSong) {
-        // TODO (Fase 3): não se aplica a este projeto — busca de equivalência
-        // acontece no YouTube. Deixe vazio ou lance UnsupportedOperationException
-        // até a Fase 7 (conversão inversa), quando o Spotify também vira destino.
+        // TODO (Fase 7): buscar candidatos Spotify por título/artista, mapear para Song e tratar limites; matching permanece no TrackMatcher.
         throw new UnsupportedOperationException("TODO: Fase 7 (conversão inversa)");
     }
 
     @Override
     public String createPlaylist(String name) {
-        // TODO (Fase 6)
+        // TODO (Fase 6): garantir escopo de escrita, criar playlist na conta autorizada e retornar o ID.
         throw new UnsupportedOperationException("TODO: Fase 6");
     }
 
     @Override
     public void addTracks(String playlistId, List<String> trackIds) {
-        // TODO (Fase 6)
+        // TODO (Fase 6): converter IDs para URIs Spotify e inserir em lotes na ordem recebida, sem retry cego de escrita.
         throw new UnsupportedOperationException("TODO: Fase 6");
     }
 
     @Override
     public List<Song> getPlaylistTracksAlreadyAdded(String playlistId) {
-        // TODO (Fase 5): reaproveita getPlaylistTracks
+        // TODO (Fase 6): ler itens já presentes no destino, reaproveitando getPlaylistTracks; coordenar a checagem com o histórico H2.
         throw new UnsupportedOperationException("TODO: Fase 5");
     }
 }

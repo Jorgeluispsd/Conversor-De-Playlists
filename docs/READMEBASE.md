@@ -1,53 +1,51 @@
-# Conversor de Playlists
+# Base técnica — Conversor de Playlists
 
-Conversor bidirecional de playlists entre Spotify e YouTube Music, em Java + Spring Boot.
+Estado em 13/10/2026. O README da raiz apresenta o projeto; [TASKS.md](TASKS.md) acompanha implementação e [PROJECT_LIMITATIONS.md](PROJECT_LIMITATIONS.md) registra decisões de escopo.
 
-## Setup inicial
+## Implementado
 
-1. Copie `.env.example` para `.env` e preencha com suas próprias credenciais:
-   - **Spotify**: crie um app em https://developer.spotify.com/dashboard e adicione
-     seu e-mail em *Users Management* (obrigatório em Development Mode — limite de
-     5 usuários autorizados, e a conta usada precisa ser Premium).
-   - **YouTube**: crie um projeto no Google Cloud Console, ative a *YouTube Data API v3*
-     e gere uma chave de API.
-2. Confirme que `.env` está no `../.gitignore` antes do primeiro commit.
-3. Importe o projeto no seu IDE (Maven) e rode `PlaylistConverterApplication`.
+- Java 21 e Spring Boot com injeção via classes de configuração.
+- Spotify: Authorization Code + PKCE, callback local, armazenamento de refresh token, restauração da sessão e renovação. SpotifyMusicService usa esse fluxo para leitura; classes/beans de Client Credentials ainda existem, mas não são o fluxo de leitura desse serviço.
+- YouTube: leitura de playlist e busca de até cinco candidatos via chave de API. Escrita autenticada ainda não implementada.
+- Modelo comum Song e MatchResult; TrackMatcher com Jaro-Winkler do Apache Commons Text. Pontuação representa semelhança, não garantia de identidade do áudio.
+- H2: schema e consultas em src/main/resources/sql; preparação em H2DatabaseInitializer, operações em H2SyncStateStore e leitura dos recursos em SqlResourceLoader.
+- Exceptions por responsabilidade; causa preservada, interrupção sinalizada, retry único Spotify após 401, quotaExceeded YouTube e 429 Spotify específicos.
 
-## Estrutura do projeto
+## Execução local
 
-```
-model/       -> Track, MatchResult (comuns aos dois serviços)
-service/     -> interface MusicService (contrato comum Spotify/YouTube)
-spotify/     -> SpotifyMusicService (implementação do lado Spotify)
-youtube/     -> YoutubeMusicService (implementação do lado YouTube)
-matcher/     -> TrackMatcher (lógica de similaridade / matching)
-state/       -> SyncStateStore (histórico + controle de duplicata via SQLite)
-```
+Copie .env.example para .env e configure suas credenciais. O fluxo PKCE usa SPOTIFY_CLIENT_ID e SPOTIFY_REDIRECT_URI; SPOTIFY_CLIENT_SECRET permanece para os componentes de Client Credentials existentes. YOUTUBE_API_KEY permite as consultas atuais ao YouTube. Registre o redirect http://127.0.0.1:8888/callback no app Spotify.
 
-## Roteiro de desenvolvimento
+Execute PlaylistConverterApplication no IntelliJ, habilitando o runner manual desejado. O main desabilita headless para permitir abertura do navegador no computador local. O fallback manual permanece quando BROWSE não está disponível.
 
-O projeto está organizado em fases, marcadas como comentários `TODO (Fase N)`
-dentro do código. Siga nesta ordem:
+Também é possível executar:
 
-1. **Fase 1** — Autenticação Spotify (Authorization Code + PKCE, leitura)
-2. **Fase 2** — Listar as faixas de uma playlist do Spotify
-3. **Fase 3** — Buscar candidatos equivalentes no YouTube (`search.list`)
-4. **Fase 4** — Matching: calcular similaridade e **imprimir no console** o
-   resultado (faixa original vs. candidato encontrado + confiança), sem gravar
-   nada ainda. *Você está começando por aqui.*
-5. **Fase 5** — Persistência: tabelas SQLite (`sync_job`, `sync_run`, `synced_track`)
-6. **Fase 6** — Escrita real: criar playlist de destino, checar duplicata, adicionar faixas
-7. **Fase 7** — Conversão inversa (YouTube → Spotify), reaproveitando o mesmo `MusicService`
-
-Notificações (webhook) e paralelismo ficam para depois que o fluxo básico
-estiver funcionando ponta a ponta.
-
-## Rodando
-
-```
+```text
 mvn spring-boot:run
 ```
 
-Por enquanto o `CommandLineRunner` em `PlaylistConverterApplication` só confirma
-que as variáveis de ambiente foram carregadas e roda um matching de exemplo com
-dados fictícios — substitua pelo fluxo real conforme for avançando pelas fases.
+Isso inicia a aplicação e os runners habilitados; não executa uma conversão completa ainda.
+
+## Persistência e console
+
+A pasta ~/.playlist-converter guarda spotify_tokens.json e o banco H2, cujo caminho base é data.db. O console local imprime seu link nos logs. Use a URL JDBC jdbc:h2:~/.playlist-converter/data.db e as credenciais do banco criado. As tabelas são sync_job, sync_run e synced_track. Histórico de sincronização não é cache de pesquisas.
+
+## Testes
+
+```text
+mvn test
+mvn test -Dtest=YoutubeMusicServiceTest
+```
+
+Sem Maven no PATH, execute pelo Run Anything do IntelliJ (Ctrl duas vezes). O primeiro comando executa a suíte; o segundo seleciona uma classe. Atualmente são 36 testes aprovados: 19 matcher, 4 SpotifyMusicService, 4 callback, 3 H2 e 6 YouTube. Mocks não consomem quota; o H2 de teste usa uma pasta temporária.
+
+## Tratamento atual dos limites
+
+Quota YouTube e 429 Spotify encerram a operação com exceptions específicas, preservando a causa. Spotify guarda Retry-After quando positivo, mas não espera nem repete automaticamente. A biblioteca atual não disponibiliza o motivo estruturado QUOTA_EXCEEDED. A política de retomada e tentativas limitadas pertence à Fase 6.
+
+## Próximas fases
+
+- Fase 6: OAuth Google para escrita, criação/inserção de faixas, orquestrador, histórico e política de interrupção/retomada. Validar primeiro com playlist pequena.
+- Fase 7: busca de candidatos Spotify e conversão inversa. Leitura YouTube já implementada.
+- Fase 8: interface web com análise, prévia comparativa, escolhas, cancelamento e confirmação antes da escrita.
+
+Erros adicionais e comentários antigos serão revisados conforme cada bloco avançar. Notificações e paralelismo continuam no backlog.

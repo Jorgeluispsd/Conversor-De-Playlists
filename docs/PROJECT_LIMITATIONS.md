@@ -24,6 +24,12 @@ Reutilizar correspondências confirmadas e candidatos conhecidos pode reduzir pe
 
 O limite de frequência considera uma janela móvel de 30 segundos. Ao atingir o limite, a API retorna HTTP 429 e normalmente fornece `Retry-After`. Aplicativos em desenvolvimento também têm quotas compartilhadas por grupos de endpoints e conta de desenvolvedor, podendo retornar `QUOTA_EXCEEDED`. Não assumir valores ou prazos universais de renovação que o provedor não publica.
 
+## Comportamento implementado — 13/10/2026
+
+O YouTube identifica `quotaExceeded` e lança `YoutubeQuotaExceededException`. O Spotify transforma HTTP 429 em `SpotifyRequestLimitException`, preservando a causa e `Retry-After` quando positivo; sem prazo válido, o campo fica nulo. Os serviços interrompem a operação sem repetição imediata.
+
+A biblioteca Spotify 10.0.0 usada no projeto não preserva o motivo estruturado `QUOTA_EXCEEDED`. Portanto, o código atual não distingue com segurança quota esgotada de limite de frequência. Espera automática, tentativas limitadas e retomada são decisões pendentes do orquestrador na Fase 6; não estão implementadas nos serviços atuais.
+
 ## Qualidade das correspondências
 
 A pontuação do matcher representa semelhança, não probabilidade de acerto nem garantia de identidade do áudio. Covers, remixes, versões ao vivo e diferenças de metadados podem produzir correspondências incorretas. O fluxo de revisão pelo usuário está planejado para a Fase 8.

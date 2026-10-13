@@ -22,13 +22,10 @@ public class PlaylistConverterApplication {
     }
 
     /**
-     * Runner temporário para a Fase 4: ler credenciais do .env e imprimir o
-     * resultado do matching no console, sem gravar nada ainda.
-     *
-     * Substitua o conteúdo deste método conforme for avançando pelas fases:
-     * Fase 1-2 -> autenticar no Spotify e listar as faixas de uma playlist real
-     * Fase 3   -> buscar candidatos no YouTube para cada faixa
-     * Fase 4   -> passar (faixa, candidatos) para o TrackMatcher e printar o resultado
+     * Laboratório de validações manuais de Spotify, YouTube, matcher e persistência H2.
+     * Habilitar apenas os runners do cenário em teste; ainda não realiza conversão completa.
+     * TODO (Fase 6): validar escrita e orquestração primeiro com playlist pequena.
+     * TODO (Fase 8): expor análise, prévia, revisão e execução confirmada por interface web.
      */
 
 
@@ -285,10 +282,10 @@ public class PlaylistConverterApplication {
             System.out.println("YOUTUBE_API_KEY carregado: "
                     + (dotenv.get("YOUTUBE_API_KEY") != null && !dotenv.get("YOUTUBE_API_KEY").isBlank()));
 
-            // TODO (Fase 2): trocar por faixas reais vindas do SpotifyMusicService
+            // Exemplo manual de uma faixa; a leitura de playlist Spotify já existe em outro runner.
             Song exemplo = new Song("1", "Numb", "Linkin Park", 185_000);
 
-            // TODO (Fase 4): trocar por candidatos reais vindos do YoutubeMusicService
+            // Consulta real ao YouTube: cada execução consome uma pesquisa da quota do projeto.
             List<Song> candidatos = youtubeMusicService.searchCandidates(exemplo);
 
             System.out.println("=== Candidatos encontrados: " + candidatos.size() + " ===");

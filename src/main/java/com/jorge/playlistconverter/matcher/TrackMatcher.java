@@ -8,19 +8,10 @@ import java.text.Normalizer;
 import java.util.List;
 
 /**
- * Fase 4 — o próximo passo que você quer atacar: dado uma faixa de origem e uma
- * lista de candidatos vindos da busca, escolher o melhor e calcular um score
- * de confiança. Nesta fase o objetivo é só IMPRIMIR o resultado no console
- * (ver TODO em MainRunner) para validar visualmente se está acertando.
- *
- * Sugestão de algoritmo inicial (ver conversa anterior sobre Levenshtein/Jaro-Winkler):
- * 1. Normalizar título e artista (minúsculo, remover acentos, remover parênteses
- *    tipo "(Official Video)", "(Lyrics)").
- * 2. Calcular similaridade de string entre o título normalizado da origem e o
- *    de cada candidato.
- * 3. Penalizar (ou descartar) candidatos com palavras como "cover", "live",
- *    "remix", "8D audio" quando a faixa original não tiver essas palavras.
- * 4. Retornar o candidato de maior score como MatchResult.
+ * Compara títulos e artistas normalizados usando Jaro-Winkler, com penalidades
+ * para versões diferentes e ajustes para os metadados dos candidatos.
+ * Retorna o melhor resultado conforme o limiar atual, sem chamadas às APIs nem escrita.
+ * A pontuação indica semelhança; revisão e confirmação do usuário pertencem à Fase 8.
  */
 public class TrackMatcher {
 
