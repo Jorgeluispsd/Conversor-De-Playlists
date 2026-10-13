@@ -3,6 +3,7 @@ package com.jorge.playlistconverter;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.spotify.SpotifyMusicService;
 import com.jorge.playlistconverter.state.database.H2SyncStateStore;
+import com.jorge.playlistconverter.youtube.authorization.GoogleClientSecretsLoader;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -28,7 +29,7 @@ public class PlaylistConverterApplication {
      * TODO (Fase 8): expor análise, prévia, revisão e execução confirmada por interface web.
      */
 
-
+/*
     @Bean
     CommandLineRunner run(SpotifyMusicService spotifyMusicService){
         return args -> {
@@ -64,9 +65,7 @@ public class PlaylistConverterApplication {
             }
         };
     }
-
-
-
+ */
 
 
 
@@ -335,4 +334,15 @@ public class PlaylistConverterApplication {
 
      */
 
+    @Bean
+    CommandLineRunner googleCredentialsValidationRunner(
+            GoogleClientSecretsLoader loader
+    ) {
+        return args -> {
+            loader.load();
+
+            System.out.println(
+                    "Credenciais OAuth Google carregadas e validadas.");
+        };
+    }
 }
