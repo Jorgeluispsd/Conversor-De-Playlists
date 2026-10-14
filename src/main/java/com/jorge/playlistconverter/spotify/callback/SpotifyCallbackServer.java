@@ -3,6 +3,7 @@ package com.jorge.playlistconverter.spotify.callback;
 import com.jorge.playlistconverter.errors.authorization.AuthorizationCallbackException;
 import com.jorge.playlistconverter.errors.authorization.AuthorizationDeniedException;
 import com.jorge.playlistconverter.errors.authorization.CallbackServerStartupException;
+import static com.jorge.playlistconverter.commons.http.QueryParameterParser.extractParam;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import lombok.extern.slf4j.Slf4j;
@@ -54,28 +55,6 @@ public class SpotifyCallbackServer {
         };
 
         return new CallbackResult(status, code, error);
-    }
-
-    private String extractParam(String query, String key){
-
-        if (query == null || query.isBlank()){
-            return null;
-        }
-
-        for (String pair: query.split("&")){
-            String[] parts = pair.split("=", 2);
-
-            String name = URLDecoder.decode(
-                    parts[0], StandardCharsets.UTF_8);
-
-            if (name.equals(key)){
-                return parts.length == 2 ?
-                        URLDecoder.decode(parts[1], StandardCharsets.UTF_8)
-                        : "";
-            }
-        }
-
-        return null;
     }
 
     private void sendCallbackResponse(HttpExchange exchange, int status, String message) throws IOException {
