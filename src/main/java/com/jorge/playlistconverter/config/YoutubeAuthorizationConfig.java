@@ -5,6 +5,7 @@ import com.jorge.playlistconverter.youtube.authorization.GoogleAuthorizationBrow
 import com.jorge.playlistconverter.youtube.authorization.GoogleAuthorizationFlowFactory;
 import com.jorge.playlistconverter.youtube.authorization.GoogleClientSecretsLoader;
 import com.jorge.playlistconverter.youtube.callback.GoogleCallbackServer;
+import com.jorge.playlistconverter.youtube.session.GoogleSessionManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -34,7 +35,13 @@ public class YoutubeAuthorizationConfig {
     @Bean
     public GoogleAuthService googleAuthService(GoogleAuthorizationFlowFactory flowFactory,
                                                 GoogleCallbackServer callbackServer,
-                                                GoogleAuthorizationBrowser browser) {
-        return new GoogleAuthService(flowFactory, callbackServer, browser);
+                                                GoogleAuthorizationBrowser browser,
+                                                GoogleSessionManager sessionManager) {
+        return new GoogleAuthService(flowFactory, callbackServer, browser, sessionManager);
+    }
+
+    @Bean
+    public GoogleSessionManager googleSessionManager() {
+        return new GoogleSessionManager();
     }
 }

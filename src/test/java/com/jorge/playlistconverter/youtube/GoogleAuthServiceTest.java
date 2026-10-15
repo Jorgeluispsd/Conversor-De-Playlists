@@ -21,6 +21,7 @@ import com.google.api.client.auth.oauth2.TokenErrorResponse;
 import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.client.util.store.DataStore;
 import com.google.api.client.util.store.MemoryDataStoreFactory;
+import com.jorge.playlistconverter.youtube.session.GoogleSessionManager;
 
 import java.io.IOException;
 import java.net.URI;
@@ -66,6 +67,7 @@ class GoogleAuthServiceTest {
         callback = mock(GoogleCallbackSession.class);
         browser = mock(GoogleAuthorizationBrowser.class);
         credential = mock(Credential.class);
+        GoogleSessionManager sessionManager = new GoogleSessionManager();
 
         tokenResponse = new TokenResponse();
         tokenResponse.setAccessToken("fake-access-token");
@@ -86,11 +88,11 @@ class GoogleAuthServiceTest {
         when(flow.createAndStoreCredential(tokenResponse, "local-user"))
                 .thenReturn(credential);
 
-        service = new GoogleAuthService(
-                factory, callbackServer, browser);
+        service = new GoogleAuthService(factory, callbackServer, browser, sessionManager);
     }
 
     @AfterEach
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     void clearInterruptedFlag() {
         Thread.interrupted();
     }

@@ -13,6 +13,7 @@ import com.jorge.playlistconverter.youtube.authorization.GoogleAuthorizationBrow
 import com.jorge.playlistconverter.youtube.authorization.GoogleAuthorizationFlowFactory;
 import com.jorge.playlistconverter.youtube.callback.GoogleCallbackServer;
 import com.jorge.playlistconverter.youtube.callback.GoogleCallbackSession;
+import com.jorge.playlistconverter.youtube.session.GoogleSessionManager;
 
 import java.io.IOException;
 import java.net.URI;
@@ -25,20 +26,20 @@ import java.util.concurrent.TimeoutException;
 
 public class GoogleAuthService {
 
-    private static final String LOCAL_USER_ID = "local-user";
     private static final long LOGIN_TIMEOUT_SECONDS = 180;
-    private static final long TOKEN_EXPIRATION_MARGIN_SECONDS = 60;
 
     private final GoogleAuthorizationFlowFactory flowFactory;
     private final GoogleCallbackServer callbackServer;
     private final GoogleAuthorizationBrowser browser;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final GoogleSessionManager sessionManager;
 
     public GoogleAuthService(GoogleAuthorizationFlowFactory flowFactory, GoogleCallbackServer callbackServer,
-                             GoogleAuthorizationBrowser browser) {
+                             GoogleAuthorizationBrowser browser, GoogleSessionManager sessionManager) {
         this.flowFactory = Objects.requireNonNull(flowFactory);
         this.callbackServer = Objects.requireNonNull(callbackServer);
         this.browser = Objects.requireNonNull(browser);
+        this.sessionManager = Objects.requireNonNull(sessionManager);
     }
 
     public Credential login(){
@@ -48,7 +49,7 @@ public class GoogleAuthService {
     public Credential ensureAuthenticated(){
         AuthorizationCodeFlow flow = flowFactory.create();
 
-        Credential storedCredential = restoreCredential(flow);
+        Credential storedCredential = sessionManager.restore(flow);
 
         return storedCredential != null
                 ? storedCredential : login(flow);
@@ -72,7 +73,7 @@ public class GoogleAuthService {
 
             TokenResponse response = exchangeCode(flow, code, callback.getRedirectUri());
 
-            return storeCredential(flow, response);
+            return sessionManager.store(flow, response);
 
         }catch (TimeoutException e){
             throw new AuthorizationTimeoutException("Tempo de autorização Google esgotado. "
@@ -133,96 +134,5 @@ public class GoogleAuthService {
         }
 
         return response;
-    }
-
-    private Credential storeCredential(AuthorizationCodeFlow flow,
-                                       TokenResponse response){
-        try {
-            return flow.createAndStoreCredential(response, LOCAL_USER_ID);
-
-        }catch (IOException e){
-            throw new YoutubeAuthenticationException(
-                    "A autorização Google foi recebida, mas não foi "
-                            + "possível armazenar a sessão local.", e);
-        }
-    }
-
-    private Credential restoreCredential(AuthorizationCodeFlow flow){
-        Credential storedCredential;
-
-        try {
-            storedCredential = flow.loadCredential(LOCAL_USER_ID);
-
-        } catch (IOException e) {
-            throw new YoutubeAuthenticationException(
-                    "Não foi possível ler a sessão Google salva.", e);
-        }
-
-        if (storedCredential == null) {
-            return null;
-        }
-
-        if (hasValidAccessToken(storedCredential)){
-            return storedCredential;
-        }
-
-        return refreshCredential(flow, storedCredential);
-    }
-
-    private Credential refreshCredential(AuthorizationCodeFlow flow, Credential credential){
-        String refreshToken = credential.getRefreshToken();
-
-        if (refreshToken == null || refreshToken.isBlank()){
-            return null;
-        }
-
-        try {
-            boolean refreshed = credential.refreshToken();
-
-            if (refreshed && hasValidAccessToken(credential)) {
-                return credential;
-            }
-
-            throw new YoutubeAuthenticationException(
-                    "A renovação Google não produziu " + "um access token utilizável.");
-
-        }catch (TokenResponseException e){
-            if (e.getDetails() != null
-                    && "invalid_grant".equals(e.getDetails().getError())){
-
-                deleteStoredCredential(flow);
-                return null;
-            }
-
-            throw new YoutubeAuthenticationException(
-                    "Google recusou a renovação da sessão. "
-                            + "Nenhuma nova autorização foi iniciada.");
-
-
-        }catch (IOException e){
-            throw new YoutubeAuthenticationException(
-                    "Ocorreu uma falha técnica ao renovar a sessão Google. "
-                            + "Nenhuma nova autorização foi iniciada.");
-        }
-    }
-
-    private boolean hasValidAccessToken(Credential credential){
-        String accessToken = credential.getAccessToken();
-        Long expiresInSeconds = credential.getExpiresInSeconds();
-
-        return accessToken != null
-                && !accessToken.isBlank()
-                && expiresInSeconds != null
-                && expiresInSeconds > TOKEN_EXPIRATION_MARGIN_SECONDS;
-    }
-
-    private void deleteStoredCredential(AuthorizationCodeFlow flow){
-        try {
-            flow.getCredentialDataStore().delete(LOCAL_USER_ID);
-        }
-        catch (IOException e){
-            throw new YoutubeAuthenticationException(
-                    "Não foi possível remover a sessão Google inválida.", e);
-        }
     }
 }
