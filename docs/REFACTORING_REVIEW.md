@@ -7,6 +7,7 @@ Acompanhamento solicitado por Jorge. O roteiro de implementação está em [TASK
 - Orientar alterações manuais de código no IntelliJ, em blocos pequenos, explicando o que muda e por quê.
 - Separar mudanças estruturais de tratamentos de erro; compilar e validar antes de continuar.
 - Criar testes isolados pertinentes, sem tokens pessoais nem chamadas reais às APIs; usar bancos temporários.
+- Apresentar cada bloco na ordem: ideia -> código -> explicação -> resumo da validação. Sempre que houver testes, incluir um quadro por cenário com nome do teste, situação simulada e comportamento esperado; explicar o que é real ou mockado, se há espera/rede e por que uma falha esperada faz o teste passar (preferência registrada em 15/10/2026).
 - Documentos podem ser atualizados diretamente. Jorge executa os commits.
 
 ## Blocos concluídos

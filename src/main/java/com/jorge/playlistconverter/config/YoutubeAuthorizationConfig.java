@@ -1,5 +1,7 @@
 package com.jorge.playlistconverter.config;
 
+import com.jorge.playlistconverter.youtube.GoogleAuthService;
+import com.jorge.playlistconverter.youtube.authorization.GoogleAuthorizationBrowser;
 import com.jorge.playlistconverter.youtube.authorization.GoogleAuthorizationFlowFactory;
 import com.jorge.playlistconverter.youtube.authorization.GoogleClientSecretsLoader;
 import com.jorge.playlistconverter.youtube.callback.GoogleCallbackServer;
@@ -22,5 +24,17 @@ public class YoutubeAuthorizationConfig {
     @Bean
     public GoogleCallbackServer googleCallbackServer() {
         return new GoogleCallbackServer();
+    }
+
+    @Bean
+    public GoogleAuthorizationBrowser googleAuthorizationBrowser() {
+        return new GoogleAuthorizationBrowser();
+    }
+
+    @Bean
+    public GoogleAuthService googleAuthService(GoogleAuthorizationFlowFactory flowFactory,
+                                                GoogleCallbackServer callbackServer,
+                                                GoogleAuthorizationBrowser browser) {
+        return new GoogleAuthService(flowFactory, callbackServer, browser);
     }
 }
