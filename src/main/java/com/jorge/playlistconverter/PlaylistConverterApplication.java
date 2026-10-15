@@ -1,6 +1,11 @@
 package com.jorge.playlistconverter;
 
 import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.services.youtube.YouTube;
+import com.google.api.services.youtube.model.ChannelListResponse;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.spotify.SpotifyMusicService;
 import com.jorge.playlistconverter.state.database.H2SyncStateStore;
@@ -12,6 +17,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
+import java.io.IOException;
 import java.util.List;
 
 
@@ -352,6 +358,7 @@ public class PlaylistConverterApplication {
 
      */
 
+    /*
     @Bean
     CommandLineRunner googleLoginRunner(
             GoogleAuthService authService,
@@ -380,5 +387,58 @@ public class PlaylistConverterApplication {
                     "Sessão recuperada do armazenamento? "
                             + (savedCredential != null));
         };
+    }
+
+     */
+
+    @Bean
+    CommandLineRunner googleAuthenticatedRequestRunner(GoogleAuthService authService){
+        return args ->{
+            System.out.println("=== Consulta autenticada ao YouTube ===");
+
+            Credential credential = authService.ensureAuthenticated();
+
+            YouTube authenticatedYoutube = new YouTube.Builder(
+                    new NetHttpTransport(),
+                    GsonFactory.getDefaultInstance(),
+                    credential)
+                    .setApplicationName("playlist-converter")
+                    .build();
+
+            ChannelListResponse response;
+
+            try{
+                response = authenticatedYoutube.channels()
+                        .list(List.of("snippet"))
+                        .setMine(true).
+                        execute();
+
+            }catch (GoogleJsonResponseException e){
+                System.out.println(
+                        "YouTube recusou a consulta. Código HTTP: "
+                                + e.getStatusCode());
+
+                return;
+
+            } catch (IOException e) {
+                System.out.println(
+                        "Não foi possível concluir a comunicação com o YouTube.");
+
+                return;
+            }
+
+            System.out.println("Consulta autenticada aceita pelo YouTube.");
+
+            if (response.getItems() == null || response.getItems().isEmpty()) {
+                System.out.println(
+                        "A consulta não retornou um canal para a conta autorizada.");
+
+                return;
+            }
+
+            response.getItems().forEach(channel -> System.out.println(
+                    "Canal autorizado: " + channel.getSnippet().getTitle()));
+        };
+
     }
 }
