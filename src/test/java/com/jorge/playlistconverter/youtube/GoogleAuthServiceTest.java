@@ -16,6 +16,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import com.google.api.client.auth.oauth2.StoredCredential;
+import com.google.api.client.auth.oauth2.TokenErrorResponse;
+import com.google.api.client.auth.oauth2.TokenResponseException;
+import com.google.api.client.util.store.DataStore;
+import com.google.api.client.util.store.MemoryDataStoreFactory;
 
 import java.io.IOException;
 import java.net.URI;
@@ -231,5 +236,130 @@ class GoogleAuthServiceTest {
 
         assertSame(original, result.getCause());
         verify(callback).stop();
+    }
+
+    @Test
+    void shouldReuseValidStoredCredential() throws Exception {
+        Credential stored = mock(Credential.class);
+
+        when(flow.loadCredential("local-user")).thenReturn(stored);
+        when(stored.getAccessToken()).thenReturn("fake-access-token");
+        when(stored.getExpiresInSeconds()).thenReturn(3600L);
+
+        Credential result = service.ensureAuthenticated();
+
+        assertSame(stored, result);
+
+        verify(stored, never()).refreshToken();
+        verifyNoInteractions(browser, callbackServer);
+    }
+
+    @Test
+    void shouldLoginWhenNoStoredCredentialExists() throws Exception {
+        when(flow.loadCredential("local-user")).thenReturn(null);
+
+        Credential result = service.ensureAuthenticated();
+
+        assertSame(credential, result);
+
+        verify(browser).open(URI.create(AUTHORIZATION_URL));
+        verify(flow).createAndStoreCredential(
+                tokenResponse, "local-user");
+        verify(callback).stop();
+    }
+
+    @Test
+    void shouldRefreshExpiredStoredCredential() throws Exception {
+        Credential stored = expiredStoredCredential();
+
+        when(stored.getExpiresInSeconds()).thenReturn(0L, 3600L);
+        when(stored.refreshToken()).thenReturn(true);
+
+        Credential result = service.ensureAuthenticated();
+
+        assertSame(stored, result);
+
+        verify(stored, times(1)).refreshToken();
+        verifyNoInteractions(browser, callbackServer);
+    }
+
+    @Test
+    void shouldRemoveInvalidGrantAndStartNewLogin() throws Exception {
+        Credential stored = expiredStoredCredential();
+
+        TokenErrorResponse details = new TokenErrorResponse();
+        details.setError("invalid_grant");
+
+        TokenResponseException original =
+                mock(TokenResponseException.class);
+
+        when(original.getDetails()).thenReturn(details);
+        when(stored.refreshToken()).thenThrow(original);
+
+        DataStore<StoredCredential> storage =
+                new MemoryDataStoreFactory()
+                        .getDataStore("test_credentials");
+
+        storage.set("local-user", new StoredCredential());
+
+        when(flow.getCredentialDataStore()).thenReturn(storage);
+
+        Credential result = service.ensureAuthenticated();
+
+        assertSame(credential, result);
+        assertNull(storage.get("local-user"));
+
+        verify(browser).open(URI.create(AUTHORIZATION_URL));
+        verify(flow).createAndStoreCredential(
+                tokenResponse, "local-user");
+        verify(callback).stop();
+    }
+
+    @Test
+    void shouldNotStartLoginAfterTechnicalRefreshFailure() throws Exception {
+
+        Credential stored = expiredStoredCredential();
+
+        when(stored.refreshToken()).thenThrow(
+                new IOException("Falha técnica simulada"));
+
+        YoutubeAuthenticationException result = assertThrows(
+                YoutubeAuthenticationException.class,
+                () -> service.ensureAuthenticated());
+
+        assertTrue(result.getMessage().contains("falha técnica"));
+
+        verify(flow, never()).getCredentialDataStore();
+        verifyNoInteractions(browser, callbackServer);
+    }
+
+    @Test
+    void shouldNotStartLoginAfterStoredSessionReadFailure()
+            throws Exception {
+
+        IOException original =
+                new IOException("Falha simulada ao ler a sessão");
+
+        when(flow.loadCredential("local-user")).thenThrow(original);
+
+        YoutubeAuthenticationException result = assertThrows(
+                YoutubeAuthenticationException.class,
+                () -> service.ensureAuthenticated());
+
+        assertSame(original, result.getCause());
+
+        verify(flow, never()).getCredentialDataStore();
+        verifyNoInteractions(browser, callbackServer);
+    }
+
+    private Credential expiredStoredCredential() throws IOException {
+        Credential stored = mock(Credential.class);
+
+        when(flow.loadCredential("local-user")).thenReturn(stored);
+        when(stored.getAccessToken()).thenReturn("fake-expired-token");
+        when(stored.getExpiresInSeconds()).thenReturn(0L);
+        when(stored.getRefreshToken()).thenReturn("fake-refresh-token");
+
+        return stored;
     }
 }

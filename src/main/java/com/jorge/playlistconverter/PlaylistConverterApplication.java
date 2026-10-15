@@ -1,8 +1,11 @@
 package com.jorge.playlistconverter;
 
+import com.google.api.client.auth.oauth2.Credential;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.spotify.SpotifyMusicService;
 import com.jorge.playlistconverter.state.database.H2SyncStateStore;
+import com.jorge.playlistconverter.youtube.GoogleAuthService;
+import com.jorge.playlistconverter.youtube.authorization.GoogleAuthorizationFlowFactory;
 import com.jorge.playlistconverter.youtube.authorization.GoogleClientSecretsLoader;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -334,6 +337,7 @@ public class PlaylistConverterApplication {
 
      */
 
+    /*
     @Bean
     CommandLineRunner googleCredentialsValidationRunner(
             GoogleClientSecretsLoader loader
@@ -343,6 +347,38 @@ public class PlaylistConverterApplication {
 
             System.out.println(
                     "Credenciais OAuth Google carregadas e validadas.");
+        };
+    }
+
+     */
+
+    @Bean
+    CommandLineRunner googleLoginRunner(
+            GoogleAuthService authService,
+            GoogleAuthorizationFlowFactory flowFactory
+    ) {
+        return args -> {
+            System.out.println("=== Teste de login Google ===");
+
+            Credential credential = authService.ensureAuthenticated();
+
+            boolean hasAccessToken =
+                    credential.getAccessToken() != null
+                            && !credential.getAccessToken().isBlank();
+
+            boolean hasRefreshToken =
+                    credential.getRefreshToken() != null
+                            && !credential.getRefreshToken().isBlank();
+
+            System.out.println("Access token recebido? " + hasAccessToken);
+            System.out.println("Refresh token recebido? " + hasRefreshToken);
+
+            Credential savedCredential =
+                    flowFactory.create().loadCredential("local-user");
+
+            System.out.println(
+                    "Sessão recuperada do armazenamento? "
+                            + (savedCredential != null));
         };
     }
 }
