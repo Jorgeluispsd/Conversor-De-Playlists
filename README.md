@@ -10,7 +10,7 @@ O objetivo é permitir uma conversão direta e eficiente de playlists entre Spot
 
 ## 🚧 Status do projeto
 
-Em desenvolvimento — construído em fases, cada uma validada antes de avançar para a próxima. Confira o progresso detalhado em [`docs/TASKS.md`](docs/TASKS.md).
+Em desenvolvimento — construído em fases, cada uma validada antes de avançar para a próxima. As funcionalidades implementadas e os próximos passos estão resumidos abaixo.
 
 - [x] Setup do projeto (Maven + Spring Boot)
 - [x] Autenticação com Spotify (OAuth + PKCE + persistência de refresh_token)
@@ -23,11 +23,11 @@ Em desenvolvimento — construído em fases, cada uma validada antes de avançar
 - [x] 36 testes automatizados aprovados (13/10/2026)
 - [ ] Conversão real (Spotify → YouTube Music)
 - [ ] Conversão inversa (YouTube Music → Spotify)
-- [ ] Interface web com prévia, revisão e confirmação (Fase 8)
+- [ ] Interface web com prévia, revisão e confirmação (Fase 9)
 
 ## ⚙️ Como funciona
 
-A arquitetura é pensada para suportar as duas direções de conversão: `SpotifyMusicService` e `YoutubeMusicService` implementam a interface `MusicService`. Leitura, busca no YouTube, matching e persistência já existem como componentes. O orquestrador `PlaylistConverter`, a autenticação Google para escrita e a criação/inserção de faixas serão implementados na Fase 6.
+A arquitetura é pensada para suportar as duas direções de conversão: `SpotifyMusicService` e `YoutubeMusicService` implementam a interface `MusicService`. Leitura, busca no YouTube, matching e persistência já existem como componentes. OAuth Google e criação de playlists YouTube com visibilidade configurável já foram validados. Inserção de faixas e o orquestrador `PlaylistConverter` seguem pendentes na Fase 6; retomada e recuperação da ordem serão detalhadas na Fase 8.
 
 ```
 model/       -> Song, MatchResult — estruturas de dados comuns aos dois serviços
@@ -42,7 +42,7 @@ errors/      -> exceções por autorização, Spotify, YouTube e persistência
 config/      -> configuração dos clientes de API (injeção de dependência via Spring)
 ```
 
-O matcher compara os candidatos e aplica penalidades para versões diferentes. Sua pontuação indica semelhança, sem garantir que o áudio seja o mesmo. A revisão e confirmação pelo usuário estão planejadas para a Fase 8.
+O matcher compara os candidatos e aplica penalidades para versões diferentes. Sua pontuação indica semelhança, sem garantir que o áudio seja o mesmo. A revisão e confirmação pelo usuário estão planejadas para a Fase 9.
 
 ## 🛠️ Tecnologias
 
@@ -112,7 +112,7 @@ O acesso às playlists depende das permissões da conta, dos escopos e das regra
 
 O projeto trabalha com as quotas padrão; solicitar aumento está fora do escopo atual. Uma playlist inédita com 280 músicas pode exigir 280 pesquisas no YouTube e três janelas de quota padrão. Os detalhes e decisões estão em [docs/PROJECT_LIMITATIONS.md](docs/PROJECT_LIMITATIONS.md).
 
-Quando recebe `quotaExceeded`, o YouTube lança uma exceção específica. No Spotify, HTTP 429 preserva o prazo `Retry-After` quando positivo. A biblioteca atual não preserva o motivo estruturado `QUOTA_EXCEEDED`, portanto o projeto não consegue distinguir os dois tipos de limitação com segurança. Os serviços encerram a operação sem retornar uma lista parcial como resultado completo; espera automática e retomada serão avaliadas na Fase 6.
+Quando recebe `quotaExceeded`, o YouTube lança uma exceção específica. No Spotify, HTTP 429 preserva o prazo `Retry-After` quando positivo. A biblioteca atual não preserva o motivo estruturado `QUOTA_EXCEEDED`, portanto o projeto não consegue distinguir os dois tipos de limitação com segurança. Os serviços encerram a operação sem retornar uma lista parcial como resultado completo; espera automática e retomada serão detalhadas na Fase 8.
 
 ### Outras limitações
 

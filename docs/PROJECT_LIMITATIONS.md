@@ -1,6 +1,6 @@
 # Limitações e decisões de escopo
 
-Registro de decisões do projeto em 10/10/2026. Funcionalidades pendentes estão em [TASKS.md](TASKS.md).
+Registro de decisões do projeto em 10/10/2026. O README apresenta as funcionalidades e os próximos passos.
 
 ## Objetivo e limites do escopo
 
@@ -28,11 +28,11 @@ O limite de frequência considera uma janela móvel de 30 segundos. Ao atingir o
 
 O YouTube identifica `quotaExceeded` e lança `YoutubeQuotaExceededException`. O Spotify transforma HTTP 429 em `SpotifyRequestLimitException`, preservando a causa e `Retry-After` quando positivo; sem prazo válido, o campo fica nulo. Os serviços interrompem a operação sem repetição imediata.
 
-A biblioteca Spotify 10.0.0 usada no projeto não preserva o motivo estruturado `QUOTA_EXCEEDED`. Portanto, o código atual não distingue com segurança quota esgotada de limite de frequência. Espera automática, tentativas limitadas e retomada são decisões pendentes do orquestrador na Fase 6; não estão implementadas nos serviços atuais.
+A biblioteca Spotify 10.0.0 usada no projeto não preserva o motivo estruturado `QUOTA_EXCEEDED`. Portanto, o código atual não distingue com segurança quota esgotada de limite de frequência. Espera automática, tentativas limitadas e retomada são decisões pendentes da Fase 8; não estão implementadas nos serviços atuais.
 
 ## Qualidade das correspondências
 
-A pontuação do matcher representa semelhança, não probabilidade de acerto nem garantia de identidade do áudio. Covers, remixes, versões ao vivo e diferenças de metadados podem produzir correspondências incorretas. O fluxo de revisão pelo usuário está planejado para a Fase 8.
+A pontuação do matcher representa semelhança, não probabilidade de acerto nem garantia de identidade do áudio. Covers, remixes, versões ao vivo e diferenças de metadados podem produzir correspondências incorretas. O fluxo de revisão pelo usuário está planejado para a Fase 9.
 
 ## Fontes
 

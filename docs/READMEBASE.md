@@ -1,6 +1,6 @@
 # Base técnica — Conversor de Playlists
 
-Estado em 13/10/2026. O README da raiz apresenta o projeto; [TASKS.md](TASKS.md) acompanha implementação e [PROJECT_LIMITATIONS.md](PROJECT_LIMITATIONS.md) registra decisões de escopo.
+O README da raiz apresenta o projeto e seu progresso; [PROJECT_LIMITATIONS.md](PROJECT_LIMITATIONS.md) registra decisões de escopo. O planejamento detalhado é mantido localmente.
 
 ## Implementado
 
@@ -40,12 +40,13 @@ Sem Maven no PATH, execute pelo Run Anything do IntelliJ (Ctrl duas vezes). O pr
 
 ## Tratamento atual dos limites
 
-Quota YouTube e 429 Spotify encerram a operação com exceptions específicas, preservando a causa. Spotify guarda Retry-After quando positivo, mas não espera nem repete automaticamente. A biblioteca atual não disponibiliza o motivo estruturado QUOTA_EXCEEDED. A política de retomada e tentativas limitadas pertence à Fase 6.
+Quota YouTube e 429 Spotify encerram a operação com exceptions específicas, preservando a causa. Spotify guarda Retry-After quando positivo, mas não espera nem repete automaticamente. A biblioteca atual não disponibiliza o motivo estruturado QUOTA_EXCEEDED. A política de retomada, tentativas limitadas e recuperação da ordem pertence à Fase 8.
 
 ## Próximas fases
 
-- Fase 6: OAuth Google para escrita, criação/inserção de faixas, orquestrador, histórico e política de interrupção/retomada. Validar primeiro com playlist pequena.
+- Fase 6: escrita Spotify → YouTube, orquestrador e histórico básico. OAuth Google e criação de playlist YouTube já validados; inserção pendente. Validar primeiro com playlist pequena.
 - Fase 7: busca de candidatos Spotify e conversão inversa. Leitura YouTube já implementada.
-- Fase 8: interface web com análise, prévia comparativa, escolhas, cancelamento e confirmação antes da escrita.
+- Fase 8: progresso persistido, retomada, tentativas limitadas e recuperação da ordem original.
+- Fase 9: interface web com análise, prévia comparativa, escolhas, cancelamento e confirmação antes da escrita.
 
 Erros adicionais e comentários antigos serão revisados conforme cada bloco avançar. Notificações e paralelismo continuam no backlog.

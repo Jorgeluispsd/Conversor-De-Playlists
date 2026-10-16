@@ -25,3 +25,8 @@ google-tokens/
 
 *.log
 logs/
+
+# Planejamento pessoal local
+/docs/PROJECT_MILESTONE.local.md
+/docs/TASKS.md
+/docs/REFACTORING_REVIEW.md
