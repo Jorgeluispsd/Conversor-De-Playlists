@@ -6,10 +6,12 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.ChannelListResponse;
+import com.jorge.playlistconverter.enums.YoutubePlaylistVisibility;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.spotify.SpotifyMusicService;
 import com.jorge.playlistconverter.state.database.H2SyncStateStore;
 import com.jorge.playlistconverter.youtube.GoogleAuthService;
+import com.jorge.playlistconverter.youtube.YoutubeMusicService;
 import com.jorge.playlistconverter.youtube.authorization.GoogleAuthorizationFlowFactory;
 import com.jorge.playlistconverter.youtube.authorization.GoogleClientSecretsLoader;
 import org.springframework.boot.CommandLineRunner;
@@ -391,6 +393,7 @@ public class PlaylistConverterApplication {
 
      */
 
+    /*
     @Bean
     CommandLineRunner googleAuthenticatedRequestRunner(GoogleAuthService authService){
         return args ->{
@@ -441,4 +444,22 @@ public class PlaylistConverterApplication {
         };
 
     }
+
+     */
+/*
+    @Bean
+    CommandLineRunner youtubePlaylistCreationRunner(YoutubeMusicService youtubeMusicService){
+        return args -> {
+            System.out.println("=== Criação de playlist de teste ===");
+
+            String playlistId = youtubeMusicService.createPlaylist(
+                    "Playlist Converter - Teste de criação", YoutubePlaylistVisibility.PRIVATE);
+
+            System.out.println("Playlist privada criada.");
+            System.out.println("ID: " + playlistId);
+            System.out.println("Link: https://www.youtube.com/playlist?list=" + playlistId);
+        };
+    }
+
+ */
 }
