@@ -4,6 +4,7 @@ import com.google.api.client.googleapis.json.GoogleJsonError;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.*;
+import com.jorge.playlistconverter.enums.YoutubePlaylistVisibility;
 import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistCreationException;
 import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistReadException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeQuotaExceededException;
@@ -15,6 +16,7 @@ import com.jorge.playlistconverter.youtube.authorization.YoutubeAuthenticatedCli
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Leitura de playlists e busca de candidatos no YouTube usando chave de API.
@@ -140,16 +142,23 @@ public class YoutubeMusicService implements MusicService {
     }
 
     @Override
-    public String createPlaylist(String name) {
+    public String createPlaylist(String name){
+        return createPlaylist(name, YoutubePlaylistVisibility.PRIVATE);
+    }
+
+    public String createPlaylist(String name, YoutubePlaylistVisibility visibility) {
         if (name == null || name.isBlank()){
             throw new IllegalArgumentException("O nome da playlist deve ser informado.");
         }
+
+        Objects.requireNonNull(visibility,
+                "A visibilidade da playlist deve ser informada.");
 
         YouTube authenticatedYoutube = authenticatedClientFactory.create();
 
         Playlist playlist = new Playlist()
                 .setSnippet(new PlaylistSnippet().setTitle(name.strip()))
-                .setStatus(new PlaylistStatus().setPrivacyStatus("private"));
+                .setStatus(new PlaylistStatus().setPrivacyStatus(visibility.getApiValue()));
 
         try {
             Playlist created = authenticatedYoutube.playlists()

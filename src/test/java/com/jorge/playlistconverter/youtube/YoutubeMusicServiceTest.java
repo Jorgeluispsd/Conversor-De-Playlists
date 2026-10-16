@@ -6,6 +6,7 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.Playlist;
+import com.jorge.playlistconverter.enums.YoutubePlaylistVisibility;
 import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistCreationException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeQuotaExceededException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeSearchException;
@@ -13,6 +14,8 @@ import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.youtube.authorization.YoutubeAuthenticatedClientFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
@@ -261,5 +264,40 @@ class YoutubeMusicServiceTest {
                 any(Playlist.class))).thenReturn(request);
 
         return request;
+    }
+
+    @ParameterizedTest
+    @EnumSource(YoutubePlaylistVisibility.class)
+    void shouldCreatePlaylistWithSelectedVisibility(YoutubePlaylistVisibility visibility) throws IOException{
+        YouTube authenticatedYoutube = mock(YouTube.class);
+        YouTube.Playlists resource = mock(YouTube.Playlists.class);
+        YouTube.Playlists.Insert request = mock(YouTube.Playlists.Insert.class);
+
+        when(authenticatedClientFactory.create()).thenReturn(authenticatedYoutube);
+        when(authenticatedYoutube.playlists()).thenReturn(resource);
+
+        when(resource.insert(eq(List.of("snippet", "status")),
+                any(Playlist.class))).thenReturn(request);
+
+        when(request.execute()).thenReturn(new Playlist().setId("created-playlist"));
+
+        String result = service.createPlaylist("Minha playlist", visibility);
+
+        var captor = ArgumentCaptor.forClass(Playlist.class);
+        verify(resource).insert(eq(List.of("snippet", "status")), captor.capture());
+
+        assertEquals(visibility.getApiValue(),
+                captor.getValue().getStatus().getPrivacyStatus());
+
+        assertEquals("created-playlist", result);
+        verify(request, times(1)).execute();
+    }
+
+    @Test
+    void shouldRejectNullVisibilityBeforeAuthentication(){
+        assertThrows(NullPointerException.class,
+                () -> service.createPlaylist("Minha playlist", null));
+
+        verifyNoInteractions(authenticatedClientFactory, youtube);
     }
 }
