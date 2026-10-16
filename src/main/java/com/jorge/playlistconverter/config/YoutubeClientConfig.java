@@ -4,7 +4,9 @@ package com.jorge.playlistconverter.config;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.youtube.YouTube;
+import com.jorge.playlistconverter.youtube.GoogleAuthService;
 import com.jorge.playlistconverter.youtube.YoutubeMusicService;
+import com.jorge.playlistconverter.youtube.authorization.YoutubeAuthenticatedClientFactory;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,8 +27,15 @@ public class YoutubeClientConfig {
     }
 
     @Bean
-    public YoutubeMusicService youtubeMusicService(YouTube youtube, Dotenv dotenv){
+    public YoutubeMusicService youtubeMusicService(YouTube youtube, Dotenv dotenv,
+                                                   YoutubeAuthenticatedClientFactory authenticatedClientFactory){
         String apiKey = dotenv.get("YOUTUBE_API_KEY");
-        return new YoutubeMusicService(youtube, apiKey);
+
+        return new YoutubeMusicService(youtube, apiKey, authenticatedClientFactory);
+    }
+
+    @Bean
+    public YoutubeAuthenticatedClientFactory youtubeAuthenticatedClientFactory(GoogleAuthService authService){
+        return new YoutubeAuthenticatedClientFactory(authService);
     }
 }

@@ -11,6 +11,7 @@ import com.jorge.playlistconverter.errors.youtube.YoutubeQuotaExceededException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeSearchException;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
+import com.jorge.playlistconverter.youtube.authorization.YoutubeAuthenticatedClientFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,10 +26,13 @@ public class YoutubeMusicService implements MusicService {
 
     private final YouTube youtube;
     private final String apiKey;
+    private final YoutubeAuthenticatedClientFactory authenticatedClientFactory;
 
-    public YoutubeMusicService(YouTube youtube, String apiKey) {
+    public YoutubeMusicService(YouTube youtube, String apiKey,
+                               YoutubeAuthenticatedClientFactory authenticatedClientFactory) {
         this.youtube = youtube;
         this.apiKey = apiKey;
+        this.authenticatedClientFactory = authenticatedClientFactory;
     }
 
     @Override

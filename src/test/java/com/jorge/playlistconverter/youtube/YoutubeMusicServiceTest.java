@@ -8,6 +8,7 @@ import com.google.api.services.youtube.YouTube;
 import com.jorge.playlistconverter.errors.youtube.YoutubeQuotaExceededException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeSearchException;
 import com.jorge.playlistconverter.model.Song;
+import com.jorge.playlistconverter.youtube.authorization.YoutubeAuthenticatedClientFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,13 +21,16 @@ class YoutubeMusicServiceTest {
 
     private YouTube youtube;
     private YoutubeMusicService service;
+    private YoutubeAuthenticatedClientFactory authenticatedClientFactory;
 
     private final Song sourceSong = new Song("test-song", "Test Song", "Test Artist", 200000);
 
     @BeforeEach
     void setUp(){
         youtube = mock(YouTube.class);
-        service = new YoutubeMusicService(youtube, "test-api-key");
+        authenticatedClientFactory = mock(YoutubeAuthenticatedClientFactory.class);
+
+        service = new YoutubeMusicService(youtube, "test-api-key", authenticatedClientFactory);
     }
 
     @Test
