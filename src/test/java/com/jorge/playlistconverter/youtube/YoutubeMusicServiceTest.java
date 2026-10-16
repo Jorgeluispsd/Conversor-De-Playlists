@@ -5,12 +5,15 @@ import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.services.youtube.YouTube;
+import com.google.api.services.youtube.model.Playlist;
+import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistCreationException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeQuotaExceededException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeSearchException;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.youtube.authorization.YoutubeAuthenticatedClientFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
 import java.util.List;
@@ -88,7 +91,7 @@ class YoutubeMusicServiceTest {
     }
 
     @Test
-    void shouldHandleNullErrorEntryAndNullReason() throws IOException{
+    void shouldHandleNullErrorReason() throws IOException{
         GoogleJsonError.ErrorInfo error = new GoogleJsonError.ErrorInfo();
 
         GoogleJsonError details = new GoogleJsonError();
@@ -147,5 +150,116 @@ class YoutubeMusicServiceTest {
                         403, "Forbidden", new HttpHeaders());
 
         return new GoogleJsonResponseException(response, details);
+    }
+
+    @Test
+    void shouldCreatePrivatePlaylistAndReturnId() throws IOException{
+        YouTube authenticatedYoutube = mock(YouTube.class);
+        YouTube.Playlists resource = mock(YouTube.Playlists.class);
+        YouTube.Playlists.Insert request = mock(YouTube.Playlists.Insert.class);
+
+        when(authenticatedClientFactory.create()).thenReturn(authenticatedYoutube);
+        when(authenticatedYoutube.playlists()).thenReturn(resource);
+
+        when(resource.insert(eq(List.of("snippet", "status")),
+                any(Playlist.class))).thenReturn(request);
+
+        when(request.execute()).thenReturn(new Playlist().setId("created-playlist"));
+
+        String result = service.createPlaylist(" Minha playlist ");
+
+        assertEquals("created-playlist", result);
+
+        var playlistCaptor = ArgumentCaptor.forClass(Playlist.class);
+
+        verify(resource).insert(eq(List.of("snippet", "status")),
+                playlistCaptor.capture());
+
+        Playlist sent = playlistCaptor.getValue();
+
+        assertEquals("Minha playlist", sent.getSnippet().getTitle());
+        assertEquals("private", sent.getStatus().getPrivacyStatus());
+
+        verify(request, times(1)).execute();
+        verifyNoInteractions(youtube);
+    }
+
+    @Test
+    void shouldRejectMissingPlaylistNameBeforeAuthentication(){
+        for (String name : new String[]{null, "", "  "}){
+            assertThrows(IllegalArgumentException.class,
+                    () -> service.createPlaylist(name));
+        }
+
+        verifyNoInteractions(authenticatedClientFactory, youtube);
+    }
+
+    @Test
+    void shouldIdentifyQuotaExceededDuringPlaylistCreation() throws IOException{
+        GoogleJsonResponseException original = apiErrorWithReason("quotaExceeded");
+
+        YouTube.Playlists.Insert request = playlistCreationRequest();
+        when(request.execute()).thenThrow(original);
+
+        YoutubeQuotaExceededException result = assertThrows(
+                YoutubeQuotaExceededException.class, () -> service.createPlaylist("Minha playlist"));
+
+        assertSame(original, result.getCause());
+        verify(request, times(1)).execute();
+    }
+
+    @Test
+    void shouldPreservePlaylistCreationCommunicationFailure() throws IOException{
+        IOException original = new IOException("Falha simulada");
+
+        YouTube.Playlists.Insert request = playlistCreationRequest();
+        when(request.execute()).thenThrow(original);
+
+        YoutubePlaylistCreationException result = assertThrows(
+                YoutubePlaylistCreationException.class,
+                () -> service.createPlaylist("Minha playlist"));
+
+        assertSame(original, result.getCause());
+        verify(request, times(1)).execute();
+    }
+
+    @Test
+    void shouldRejectPlaylistCreationResponseWithoutId() throws IOException{
+        YouTube.Playlists.Insert request = playlistCreationRequest();
+        when(request.execute()).thenReturn(new Playlist());
+
+        assertThrows(YoutubePlaylistCreationException.class,
+                () -> service.createPlaylist("Minha playlist"));
+
+        verify(request, times(1)).execute();
+    }
+
+    @Test
+    void shouldPreservePlaylistCreationApiRefusal() throws IOException{
+        GoogleJsonResponseException original = apiErrorWithReason("playlistForbidden");
+
+        YouTube.Playlists.Insert request = playlistCreationRequest();
+        when(request.execute()).thenThrow(original);
+
+        YoutubePlaylistCreationException result = assertThrows(
+                YoutubePlaylistCreationException.class,
+                () -> service.createPlaylist("Minha playlist"));
+
+        assertSame(original, result.getCause());
+        verify(request, times(1)).execute();
+    }
+
+    private YouTube.Playlists.Insert playlistCreationRequest() throws IOException{
+        YouTube authenticatedYoutube = mock(YouTube.class);
+        YouTube.Playlists resource = mock(YouTube.Playlists.class);
+        YouTube.Playlists.Insert request = mock(YouTube.Playlists.Insert.class);
+
+        when(authenticatedClientFactory.create()).thenReturn(authenticatedYoutube);
+        when(authenticatedYoutube.playlists()).thenReturn(resource);
+
+        when(resource.insert(eq(List.of("snippet", "status")),
+                any(Playlist.class))).thenReturn(request);
+
+        return request;
     }
 }

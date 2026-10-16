@@ -3,9 +3,8 @@ package com.jorge.playlistconverter.youtube;
 import com.google.api.client.googleapis.json.GoogleJsonError;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.youtube.YouTube;
-import com.google.api.services.youtube.model.PlaylistItem;
-import com.google.api.services.youtube.model.PlaylistItemListResponse;
-import com.google.api.services.youtube.model.SearchListResponse;
+import com.google.api.services.youtube.model.*;
+import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistCreationException;
 import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistReadException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeQuotaExceededException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeSearchException;
@@ -142,8 +141,46 @@ public class YoutubeMusicService implements MusicService {
 
     @Override
     public String createPlaylist(String name) {
-        // TODO (Fase 6): usar cliente com OAuth do usuário, criar playlist com playlists.insert e retornar o ID.
-        throw new UnsupportedOperationException("TODO: Fase 6");
+        if (name == null || name.isBlank()){
+            throw new IllegalArgumentException("O nome da playlist deve ser informado.");
+        }
+
+        YouTube authenticatedYoutube = authenticatedClientFactory.create();
+
+        Playlist playlist = new Playlist()
+                .setSnippet(new PlaylistSnippet().setTitle(name.strip()))
+                .setStatus(new PlaylistStatus().setPrivacyStatus("private"));
+
+        try {
+            Playlist created = authenticatedYoutube.playlists()
+                    .insert(List.of("snippet", "status"), playlist)
+                    .execute();
+
+            if (created == null
+                    || created.getId() == null
+                    || created.getId().isBlank()){
+                throw new YoutubePlaylistCreationException("O YouTube não retornou um ID válido "
+                        + "após a solicitação de criação da playlist.");
+            }
+
+            return created.getId();
+
+        }catch (GoogleJsonResponseException e){
+            if (isQuotaExceeded(e)){
+                throw new YoutubeQuotaExceededException(
+                        "A quota da API do YouTube foi esgotada. "
+                                + "Não foi possível concluir a criação da playlist.", e);
+            }
+
+            throw new YoutubePlaylistCreationException(
+                    "A API do YouTube recusou a criação da playlist. "
+                            + "Código HTTP: " + e.getStatusCode() + ".", e);
+
+        }catch (IOException e){
+            throw new YoutubePlaylistCreationException(
+                    "Falha de comunicação durante a criação da playlist. "
+                            + "Verifique o destino antes de tentar novamente.", e);
+        }
     }
 
     @Override
