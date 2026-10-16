@@ -5,10 +5,7 @@ import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.*;
 import com.jorge.playlistconverter.enums.YoutubePlaylistVisibility;
-import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistCreationException;
-import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistReadException;
-import com.jorge.playlistconverter.errors.youtube.YoutubeQuotaExceededException;
-import com.jorge.playlistconverter.errors.youtube.YoutubeSearchException;
+import com.jorge.playlistconverter.errors.youtube.*;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
 import com.jorge.playlistconverter.youtube.authorization.YoutubeAuthenticatedClientFactory;
@@ -194,8 +191,93 @@ public class YoutubeMusicService implements MusicService {
 
     @Override
     public void addTracks(String playlistId, List<String> trackIds) {
-        // TODO (Fase 6): inserir videoIds com OAuth e playlistItems.insert, preservando ordem e tratando quota/falhas parciais.
-        throw new UnsupportedOperationException("TODO: Fase 6");
+        validateTrackInsertion(playlistId, trackIds);
+
+        if (trackIds.isEmpty()){
+            return;
+        }
+
+        YouTube authenticatedYoutube = authenticatedClientFactory.create();
+
+        int confirmedInsertions = 0;
+
+        try {
+            for (String trackId : trackIds){
+                insertTrack(authenticatedYoutube, playlistId,
+                        trackId, confirmedInsertions);
+
+                confirmedInsertions++;
+            }
+
+        }catch (GoogleJsonResponseException e){
+            if (isQuotaExceeded(e)){
+                throw new YoutubeQuotaExceededException(
+                        "A quota da API do YouTube foi esgotada. "
+                                + "Inserções anteriores confirmadas: "
+                                + confirmedInsertions
+                                + ". A operação foi interrompida.", e);
+            }
+
+            throw new YoutubeTrackInsertionException("A API do YouTube recusou a inserção de um vídeo. "
+                    + "Código HTTP: " + e.getStatusCode()
+                    + ". Inserções anteriores confirmadas: "
+                    + confirmedInsertions + ".", e);
+
+        }catch (IOException e){
+            throw new YoutubeTrackInsertionException(
+                    "Falha de comunicação durante a inserção de vídeos. "
+                            + "Inserções anteriores confirmadas: "
+                            + confirmedInsertions
+                            + ". Verifique o destino antes de tentar novamente.", e);
+
+        }
+    }
+
+    private void validateTrackInsertion(String playlistId, List<String> trackIds){
+        if (playlistId == null || playlistId.isBlank()){
+            throw new IllegalArgumentException(
+                    "O ID da playlist deve ser informado.");
+        }
+
+        if (trackIds == null){
+            throw new IllegalArgumentException(
+                    "A lista de vídeos deve ser informada.");
+        }
+
+        boolean hasInvalidId = trackIds.stream()
+                .anyMatch(id -> id == null || id.isBlank());
+
+        if (hasInvalidId){
+            throw new IllegalArgumentException(
+                    "A lista contém um ID de vídeo inválido.");
+        }
+
+    }
+
+    private void insertTrack(YouTube authenticatedYoutube, String playlistId,
+                             String trackId, int confirmedInsertions) throws IOException{
+
+        PlaylistItem item = new PlaylistItem()
+                .setSnippet(new PlaylistItemSnippet()
+                        .setPlaylistId(playlistId)
+                        .setResourceId(new ResourceId()
+                                .setKind("youtube#video")
+                                .setVideoId(trackId)));
+
+        PlaylistItem inserted = authenticatedYoutube.playlistItems()
+                .insert(List.of("snippet"), item).execute();
+
+
+        if (inserted == null
+                || inserted.getId() == null
+                || inserted.getId().isBlank()){
+            throw new YoutubeTrackInsertionException(
+                    "O YouTube não retornou um ID válido "
+                            + "após a solicitação de inserção. "
+                            + "Inserções anteriores confirmadas: "
+                            + confirmedInsertions
+                            + ". Verifique o destino antes de tentar novamente.");
+        }
     }
 
     @Override
