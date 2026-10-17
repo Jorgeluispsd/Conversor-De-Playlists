@@ -42,4 +42,26 @@ public class PlaylistConverter {
 
         return matcher.findBestMatch(song, candidates);
     }
+
+    public ConversionResult convertPlaylist(String sourcePlaylistId, String destinationPlaylistName){
+        if (destinationPlaylistName == null || destinationPlaylistName.isBlank()){
+            throw new IllegalArgumentException("O nome da playlist de destino deve ser informado.");
+        }
+
+        List<MatchResult> matches = analyzePlaylist(sourcePlaylistId);
+
+        List<String> destinationTrackIds = matches.stream()
+                .filter(MatchResult::found)
+                .map(MatchResult::matchedId)
+                .toList();
+
+        String destinationPlaylistId =
+                destination.createPlaylist(destinationPlaylistName);
+
+        destination.addTracks(destinationPlaylistId, destinationTrackIds);
+
+        return new ConversionResult(sourcePlaylistId, destinationPlaylistId, matches, destinationTrackIds.size());
+    }
+
+
 }

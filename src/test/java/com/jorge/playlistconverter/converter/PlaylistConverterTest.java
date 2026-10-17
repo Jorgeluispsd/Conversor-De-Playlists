@@ -2,6 +2,7 @@ package com.jorge.playlistconverter.converter;
 
 import com.jorge.playlistconverter.errors.spotify.SpotifyPlaylistReadException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeSearchException;
+import com.jorge.playlistconverter.errors.youtube.YoutubeTrackInsertionException;
 import com.jorge.playlistconverter.matcher.TrackMatcher;
 import com.jorge.playlistconverter.model.MatchResult;
 import com.jorge.playlistconverter.model.Song;
@@ -188,4 +189,129 @@ class PlaylistConverterTest {
         verifyNoInteractions(matcher);
     }
 
+    @Test
+    void shouldCreatePlaylistAndInsertOnlyFoundMatches() {
+        List<Song> firstCandidates = List.of(
+                new Song("video-A", "Song A", "Artist A", 0));
+
+        MatchResult firstMatch =
+                new MatchResult(firstSong, "video-A", "Song A", 0.95);
+
+        MatchResult missingMatch =
+                new MatchResult(secondSong, null, null, 0.0);
+
+        when(source.getPlaylistTracks("source-playlist"))
+                .thenReturn(List.of(firstSong, secondSong));
+
+        when(destination.searchCandidates(firstSong))
+                .thenReturn(firstCandidates);
+
+        when(destination.searchCandidates(secondSong))
+                .thenReturn(List.of());
+
+        when(matcher.findBestMatch(firstSong, firstCandidates))
+                .thenReturn(firstMatch);
+
+        when(matcher.findBestMatch(secondSong, List.of()))
+                .thenReturn(missingMatch);
+
+        when(destination.createPlaylist("Minha playlist"))
+                .thenReturn("destination-playlist");
+
+        ConversionResult result = converter.convertPlaylist(
+                "source-playlist",
+                "Minha playlist");
+
+        assertEquals("source-playlist", result.sourcePlaylistId());
+        assertEquals("destination-playlist", result.destinationPlaylistId());
+        assertEquals(List.of(firstMatch, missingMatch), result.matches());
+        assertEquals(1, result.insertedCount());
+
+        var order = inOrder(destination);
+
+        order.verify(destination).searchCandidates(firstSong);
+        order.verify(destination).searchCandidates(secondSong);
+        order.verify(destination).createPlaylist("Minha playlist");
+
+        order.verify(destination).addTracks(
+                "destination-playlist", List.of("video-A"));
+
+        verifyNoMoreInteractions(destination);
+    }
+
+    @Test
+    void shouldRejectInvalidDestinationNameBeforeAnalysis() {
+        for (String name : new String[]{null, "", "   "}) {
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> converter.convertPlaylist("source-playlist", name));
+        }
+
+        verifyNoInteractions(source, destination, matcher);
+    }
+
+    @Test
+    void shouldNotCreatePlaylistWhenAnalysisFails() {
+        YoutubeSearchException original = new YoutubeSearchException("Falha simulada.",
+                new IOException("Falha de comunicação simulada"));
+
+        when(source.getPlaylistTracks("source-playlist"))
+                .thenReturn(List.of(firstSong));
+
+        when(destination.searchCandidates(firstSong))
+                .thenThrow(original);
+
+        YoutubeSearchException result = assertThrows(
+                YoutubeSearchException.class,
+                () -> converter.convertPlaylist(
+                        "source-playlist",
+                        "Minha playlist"));
+
+        assertSame(original, result);
+
+        verify(destination).searchCandidates(firstSong);
+        verifyNoMoreInteractions(destination);
+    }
+
+    @Test
+    void shouldPreserveInsertionFailureWithoutRetrying() {
+        List<Song> candidates = List.of(
+                new Song("video-A", "Song A", "Artist A", 0));
+
+        MatchResult match =
+                new MatchResult(firstSong, "video-A", "Song A", 0.95);
+
+        YoutubeTrackInsertionException original =
+                new YoutubeTrackInsertionException("Falha de inserção simulada.");
+
+        when(source.getPlaylistTracks("source-playlist"))
+                .thenReturn(List.of(firstSong));
+
+        when(destination.searchCandidates(firstSong))
+                .thenReturn(candidates);
+
+        when(matcher.findBestMatch(firstSong, candidates))
+                .thenReturn(match);
+
+        when(destination.createPlaylist("Minha playlist"))
+                .thenReturn("destination-playlist");
+
+        doThrow(original).when(destination).addTracks(
+                "destination-playlist",
+                List.of("video-A"));
+
+        YoutubeTrackInsertionException result = assertThrows(
+                YoutubeTrackInsertionException.class,
+                () -> converter.convertPlaylist(
+                        "source-playlist",
+                        "Minha playlist"));
+
+        assertSame(original, result);
+
+        verify(destination, times(1)).createPlaylist("Minha playlist");
+
+        verify(destination, times(1)).addTracks(
+                "destination-playlist",
+                List.of("video-A"));
+    }
 }
