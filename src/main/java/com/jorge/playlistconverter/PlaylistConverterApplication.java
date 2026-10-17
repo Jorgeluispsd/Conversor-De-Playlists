@@ -462,4 +462,27 @@ public class PlaylistConverterApplication {
     }
 
  */
+
+    @Bean
+    CommandLineRunner youtubeTrackInsertionRunner(YoutubeMusicService youtubeMusicService){
+        return args -> {
+            String playlistId = "PLVMPlT659QZY";
+
+            List<String> videoIds = List.of(
+                    "e_tPr1PP_RY",
+                    "b5d4Nhc8L50");
+
+            System.out.println("=== Inserção de vídeos de teste ===");
+
+            youtubeMusicService.addTracks(playlistId, videoIds);
+
+            System.out.println(
+                    "Inserções confirmadas: " + videoIds.size());
+
+            System.out.println(
+                    "Confira a ordem na playlist: "
+                            + "https://www.youtube.com/playlist?list="
+                            + playlistId);
+        };
+    }
 }
