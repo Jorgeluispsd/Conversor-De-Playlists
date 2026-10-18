@@ -35,17 +35,21 @@ public class YoutubeMusicService implements MusicService {
 
     @Override
     public List<Song> getPlaylistTracks(String playlistId) {
-        // Leitura implementada com playlistItems.list e nextPageToken, em páginas de até 50 itens.
+        return readPlaylistTracks(youtube, playlistId, apiKey);
+    }
+
+    private List<Song> readPlaylistTracks(YouTube client, String playlistId, String requestApiKey){
+        //Leitura implementada com playlistItems.list e nextPageToken, em páginas de até 50 itens.
         try {
             List<Song> songs = new ArrayList<>();
             String pageToken = null;
 
             do {
-                YouTube.PlaylistItems.List request = youtube.playlistItems()
+                YouTube.PlaylistItems.List request = client.playlistItems()
                         .list(List.of("snippet"))
                         .setPlaylistId(playlistId)
                         .setMaxResults(50L)
-                        .setKey(apiKey);
+                        .setKey(requestApiKey);
 
                 if (pageToken != null) {
                     request.setPageToken(pageToken);
@@ -76,13 +80,12 @@ public class YoutubeMusicService implements MusicService {
             }
 
             throw new YoutubePlaylistReadException("A API do YouTube recusou a leitura da playlist. "
-             + "Código HTTP: " + e.getStatusCode() + ".", e);
+                    + "Código HTTP: " + e.getStatusCode() + ".", e);
 
         }catch (IOException e){
             throw new YoutubePlaylistReadException(
                     "Falha de comunicação ao consultar a playlist do YouTube.", e);
         }
-
     }
 
     @Override
@@ -282,7 +285,13 @@ public class YoutubeMusicService implements MusicService {
 
     @Override
     public List<Song> getPlaylistTracksAlreadyAdded(String playlistId) {
-        // TODO (Fase 6): consultar itens já presentes no destino com getPlaylistTracks e coordenar duplicatas com o histórico H2.
-        throw new UnsupportedOperationException("TODO: Fase 5");
+        if (playlistId == null || playlistId.isBlank()){
+            throw new IllegalArgumentException(
+                    "O ID da playlist de destino deve ser informado.");
+        }
+
+        YouTube authenticatedYoutube = authenticatedClientFactory.create();
+
+        return readPlaylistTracks(authenticatedYoutube, playlistId, null);
     }
 }
