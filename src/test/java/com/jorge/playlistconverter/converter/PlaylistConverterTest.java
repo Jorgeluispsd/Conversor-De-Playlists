@@ -314,4 +314,53 @@ class PlaylistConverterTest {
                 "destination-playlist",
                 List.of("video-A"));
     }
+
+    @Test
+    void shouldPreviewUnmatchedSongsWithoutWriting() {
+        List<Song> firstCandidates = List.of(
+                new Song("video-A", "Song A", "Artist A", 0));
+
+        MatchResult foundMatch =
+                new MatchResult(firstSong, "video-A", "Song A", 0.95);
+
+        MatchResult missingMatch =
+                new MatchResult(secondSong, null, null, 0.0);
+
+        when(source.getPlaylistTracks("source-playlist"))
+                .thenReturn(List.of(firstSong, secondSong));
+
+        when(destination.searchCandidates(firstSong))
+                .thenReturn(firstCandidates);
+
+        when(destination.searchCandidates(secondSong))
+                .thenReturn(List.of());
+
+        when(matcher.findBestMatch(firstSong, firstCandidates))
+                .thenReturn(foundMatch);
+
+        when(matcher.findBestMatch(secondSong, List.of()))
+                .thenReturn(missingMatch);
+
+        PlaylistPreview result =
+                converter.previewPlaylist("source-playlist");
+
+        assertEquals("source-playlist", result.sourcePlaylistId());
+        assertEquals(2, result.totalCount());
+        assertEquals(1L, result.foundCount());
+        assertEquals(List.of(secondSong), result.notFoundSongs());
+
+        assertEquals(
+                List.of(foundMatch, missingMatch),
+                result.matches());
+
+        verify(source).getPlaylistTracks("source-playlist");
+
+        verify(destination).searchCandidates(firstSong);
+        verify(destination).searchCandidates(secondSong);
+
+        verify(matcher).findBestMatch(firstSong, firstCandidates);
+        verify(matcher).findBestMatch(secondSong, List.of());
+
+        verifyNoMoreInteractions(source, destination, matcher);
+    }
 }

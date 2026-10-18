@@ -6,6 +6,8 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.ChannelListResponse;
+import com.jorge.playlistconverter.converter.PlaylistConverter;
+import com.jorge.playlistconverter.converter.PlaylistPreview;
 import com.jorge.playlistconverter.enums.YoutubePlaylistVisibility;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.spotify.SpotifyMusicService;
@@ -453,7 +455,7 @@ public class PlaylistConverterApplication {
             System.out.println("=== Criação de playlist de teste ===");
 
             String playlistId = youtubeMusicService.createPlaylist(
-                    "Playlist Converter - Teste de criação", YoutubePlaylistVisibility.PRIVATE);
+                    "Rockzinho da massa", YoutubePlaylistVisibility.PRIVATE);
 
             System.out.println("Playlist privada criada.");
             System.out.println("ID: " + playlistId);
@@ -463,14 +465,17 @@ public class PlaylistConverterApplication {
 
  */
 
+
+
+/*
     @Bean
     CommandLineRunner youtubeTrackInsertionRunner(YoutubeMusicService youtubeMusicService){
         return args -> {
-            String playlistId = "PLVMPlT659QZY";
+            String playlistId = "PLfRsEUW_s_1I";
 
             List<String> videoIds = List.of(
-                    "e_tPr1PP_RY",
-                    "b5d4Nhc8L50");
+                    "ocpDEOXABWg",
+                    "fcsDG_jVYbc");
 
             System.out.println("=== Inserção de vídeos de teste ===");
 
@@ -485,4 +490,64 @@ public class PlaylistConverterApplication {
                             + playlistId);
         };
     }
+
+
+ */
+
+    @Bean
+    CommandLineRunner existingPlaylistPreviewRunner(
+            PlaylistConverter converter
+    ) {
+        return args -> {
+            String sourcePlaylistId = "0ulqoAeaiNTF5YTKQ4nD9P";
+            String destinationPlaylistId = "PLfRsEUW_s_1I";
+
+            PlaylistPreview preview =
+                    converter.previewIntoExistingPlaylist(
+                            sourcePlaylistId,
+                            destinationPlaylistId);
+
+            List<Song> notFoundSongs = preview.notFoundSongs();
+
+            System.out.println("=== Prévia Spotify → YouTube ===");
+            System.out.println("Total: " + preview.totalCount());
+            System.out.println("Encontradas: " + preview.foundCount());
+
+            System.out.println(
+                    "Já presentes no destino: " + preview.alreadyPresentCount());
+
+            System.out.println(
+                    "Novas para adicionar: " + preview.newTrackCount());
+
+            System.out.println(
+                    "Candidatos novos repetidos: " + preview.repeatedCandidateCount());
+
+            System.out.println(
+                    "Sem correspondência: " + notFoundSongs.size());
+
+            System.out.println("\n=== Não encontradas ===");
+            notFoundSongs.forEach(song ->
+                    System.out.println(
+                            "- " + song.title() + " — " + song.artist()));
+
+            System.out.println("\n=== Correspondências selecionadas ===");
+
+            preview.matches().stream()
+                    .filter(match -> match.found())
+                    .forEach(match -> System.out.printf(
+                            "%s → %s | ID: %s | Já presente: %s%n",
+                            match.sourceSong().title(),
+                            match.matchedTitle(),
+                            match.matchedId(),
+                            preview.existingDestinationIds()
+                                    .contains(match.matchedId())));
+
+            System.out.println(
+                    "\nIDs já presentes no destino: "
+                            + preview.existingDestinationIds());
+
+            System.out.println("\nPrévia concluída. Nenhuma escrita foi solicitada.");
+        };
+    }
+
 }

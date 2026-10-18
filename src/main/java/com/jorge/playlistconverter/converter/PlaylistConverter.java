@@ -4,6 +4,7 @@ import com.jorge.playlistconverter.matcher.TrackMatcher;
 import com.jorge.playlistconverter.model.MatchResult;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class PlaylistConverter {
     private final MusicService source;
     private final MusicService destination;
@@ -42,7 +44,18 @@ public class PlaylistConverter {
     private MatchResult analyzeSong(Song song){
         List<Song> candidates = destination.searchCandidates(song);
 
-        return matcher.findBestMatch(song, candidates);
+        log.debug("Origem da análise: {}", song);
+
+        for (int index = 0; index < candidates.size(); index++) {
+
+            log.debug("Candidato {}: {}", index + 1, candidates.get(index));
+        }
+
+        MatchResult result = matcher.findBestMatch(song, candidates);
+
+        log.debug("Resultado da análise: {}", result);
+
+        return result;
     }
 
     public ConversionResult convertPlaylist(String sourcePlaylistId, String destinationPlaylistName){
@@ -68,13 +81,7 @@ public class PlaylistConverter {
 
     public ConversionResult convertIntoExistingPlaylist(String sourcePlaylistId,
                                                         String destinationPlaylistId){
-        if (sourcePlaylistId == null || sourcePlaylistId.isBlank()){
-            throw new IllegalArgumentException("O ID da playlist de origem deve ser informado.");
-        }
-
-        if (destinationPlaylistId == null || destinationPlaylistId.isBlank()){
-            throw new IllegalArgumentException("O ID da playlist de destino deve ser informado.");
-        }
+        validatePlaylistIds(sourcePlaylistId, destinationPlaylistId);
 
         Set<String> existingId = destination
                 .getPlaylistTracksAlreadyAdded(destinationPlaylistId)
@@ -99,5 +106,34 @@ public class PlaylistConverter {
                 newIds.size(), matchedIds.size() - newIds.size());
     }
 
+    public PlaylistPreview previewPlaylist(String sourcePlaylistId) {
+        List<MatchResult> matches = analyzePlaylist(sourcePlaylistId);
 
+        return new PlaylistPreview(sourcePlaylistId, matches);
+    }
+
+    public PlaylistPreview previewIntoExistingPlaylist(String sourcePlaylistId,
+                                                       String destinationPlaylistId){
+        validatePlaylistIds(sourcePlaylistId, destinationPlaylistId);
+
+        Set<String> existingId = destination
+                .getPlaylistTracksAlreadyAdded(destinationPlaylistId)
+                .stream().map(Song::id).collect(Collectors.toSet());
+
+        List<MatchResult> matches = analyzePlaylist(sourcePlaylistId);
+
+        return new PlaylistPreview(sourcePlaylistId, destinationPlaylistId, matches, existingId);
+    }
+
+    private void validatePlaylistIds(String sourcePlaylistId, String destinationPlaylistId){
+        if (sourcePlaylistId == null || sourcePlaylistId.isBlank()){
+            throw new IllegalArgumentException(
+                    "O ID da playlist de origem deve ser informado.");
+        }
+
+        if (destinationPlaylistId == null || destinationPlaylistId.isBlank()){
+            throw new IllegalArgumentException(
+                    "O ID da playlist de destino deve ser informado.");
+        }
+    }
 }

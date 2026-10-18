@@ -1,0 +1,228 @@
+package com.jorge.playlistconverter.converter;
+
+import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistReadException;
+import com.jorge.playlistconverter.errors.youtube.YoutubeSearchException;
+import com.jorge.playlistconverter.matcher.TrackMatcher;
+import com.jorge.playlistconverter.model.MatchResult;
+import com.jorge.playlistconverter.model.Song;
+import com.jorge.playlistconverter.service.MusicService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class ExistingPlaylistPreviewTest {
+
+    private MusicService source;
+    private MusicService destination;
+    private TrackMatcher matcher;
+    private PlaylistConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        source = mock(MusicService.class);
+        destination = mock(MusicService.class);
+        matcher = mock(TrackMatcher.class);
+
+        converter = new PlaylistConverter(source, destination, matcher);
+    }
+
+    @Test
+    void shouldSummarizeExistingNewRepeatedAndUnmatchedSongsWithoutWriting() {
+        MatchResult existing = match("source-A", "video-A");
+        MatchResult firstNew = match("source-B", "video-B");
+        MatchResult repeated = match("source-C", "video-B");
+        MatchResult missing = match("source-D", null);
+        MatchResult secondNew = match("source-E", "video-E");
+
+        when(destination.getPlaylistTracksAlreadyAdded("destination-playlist"))
+                .thenReturn(List.of(
+                        new Song("video-A", "Existing song", "Artist", 0),
+                        new Song("unrelated-video", "Other song", "Artist", 0)));
+
+        prepareAnalysis(existing, firstNew, repeated, missing, secondNew);
+
+        PlaylistPreview result = converter.previewIntoExistingPlaylist(
+                "source-playlist",
+                "destination-playlist");
+
+        assertEquals("source-playlist", result.sourcePlaylistId());
+        assertEquals("destination-playlist", result.destinationPlaylistId());
+
+        assertEquals(5, result.totalCount());
+        assertEquals(4L, result.foundCount());
+        assertEquals(1L, result.alreadyPresentCount());
+        assertEquals(2, result.newTrackCount());
+        assertEquals(1L, result.repeatedCandidateCount());
+
+        assertEquals(
+                List.of("video-B", "video-E"),
+                result.newTrackIds());
+
+        assertEquals(
+                List.of(missing.sourceSong()),
+                result.notFoundSongs());
+
+        assertEquals(
+                List.of(existing, firstNew, repeated, missing, secondNew),
+                result.matches());
+
+        verify(destination, never()).createPlaylist(anyString());
+        verify(destination, never()).addTracks(anyString(), anyList());
+    }
+
+    @Test
+    void shouldCountRepeatedExistingMatchesAsAlreadyPresent() {
+        when(destination.getPlaylistTracksAlreadyAdded("destination-playlist"))
+                .thenReturn(List.of(
+                        new Song("video-A", "Existing song", "Artist", 0)));
+
+        prepareAnalysis(
+                match("source-A", "video-A"),
+                match("source-B", "video-A"));
+
+        PlaylistPreview result = converter.previewIntoExistingPlaylist(
+                "source-playlist", "destination-playlist");
+
+        assertEquals(2L, result.foundCount());
+        assertEquals(2L, result.alreadyPresentCount());
+        assertEquals(0, result.newTrackCount());
+        assertEquals(0L, result.repeatedCandidateCount());
+        assertTrue(result.newTrackIds().isEmpty());
+
+        verify(destination, never()).createPlaylist(anyString());
+        verify(destination, never()).addTracks(anyString(), anyList());
+    }
+
+    @Test
+    void shouldReturnZeroCountsForEmptySource() {
+        when(destination.getPlaylistTracksAlreadyAdded("destination-playlist"))
+                .thenReturn(List.of());
+
+        when(source.getPlaylistTracks("source-playlist"))
+                .thenReturn(List.of());
+
+        PlaylistPreview result = converter.previewIntoExistingPlaylist(
+                "source-playlist", "destination-playlist");
+
+        assertEquals(0, result.totalCount());
+        assertEquals(0L, result.foundCount());
+        assertEquals(0L, result.alreadyPresentCount());
+        assertEquals(0, result.newTrackCount());
+        assertEquals(0L, result.repeatedCandidateCount());
+        assertTrue(result.notFoundSongs().isEmpty());
+
+        verify(destination).getPlaylistTracksAlreadyAdded("destination-playlist");
+        verifyNoMoreInteractions(destination);
+        verifyNoInteractions(matcher);
+    }
+
+    @Test
+    void shouldRejectInvalidIdsBeforeReading() {
+        for (String invalidId : new String[]{null, "", "   "}) {
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> converter.previewIntoExistingPlaylist(invalidId,
+                            "destination-playlist"));
+
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> converter.previewIntoExistingPlaylist(
+                            "source-playlist", invalidId));
+        }
+
+        verifyNoInteractions(source, destination, matcher);
+    }
+
+    @Test
+    void shouldStopBeforeAnalysisWhenDestinationReadFails() {
+        YoutubePlaylistReadException original =
+                new YoutubePlaylistReadException(
+                        "Falha de leitura simulada.", new IOException("Falha simulada"));
+
+        when(destination.getPlaylistTracksAlreadyAdded("destination-playlist"))
+                .thenThrow(original);
+
+        YoutubePlaylistReadException result = assertThrows(
+                YoutubePlaylistReadException.class,
+                () -> converter.previewIntoExistingPlaylist(
+                        "source-playlist", "destination-playlist"));
+
+        assertSame(original, result);
+
+        verifyNoInteractions(source, matcher);
+
+        verify(destination).getPlaylistTracksAlreadyAdded("destination-playlist");
+        verifyNoMoreInteractions(destination);
+    }
+
+    @Test
+    void shouldPropagateSearchFailureInsteadOfReportingUnmatchedSong() {
+        Song song = new Song("source-A", "Song A",
+                "Artist A", 200000);
+
+        YoutubeSearchException original = new YoutubeSearchException(
+                "Falha de busca simulada.", new IOException("Falha simulada"));
+
+        when(destination.getPlaylistTracksAlreadyAdded("destination-playlist"))
+                .thenReturn(List.of());
+
+        when(source.getPlaylistTracks("source-playlist")).thenReturn(List.of(song));
+
+        when(destination.searchCandidates(song)).thenThrow(original);
+
+        YoutubeSearchException result = assertThrows(
+                YoutubeSearchException.class,
+                () -> converter.previewIntoExistingPlaylist(
+                        "source-playlist", "destination-playlist"));
+
+        assertSame(original, result);
+        verifyNoInteractions(matcher);
+
+        verify(destination).getPlaylistTracksAlreadyAdded("destination-playlist");
+        verify(destination).searchCandidates(song);
+        verifyNoMoreInteractions(destination);
+    }
+
+    private MatchResult match(String sourceId, String videoId) {
+        Song song = new Song(
+                sourceId,
+                "Song " + sourceId,
+                "Test Artist",
+                200000);
+
+        return videoId == null
+                ? new MatchResult(song, null, null, 0.0)
+                : new MatchResult(song, videoId, "Matched song", 0.95);
+    }
+
+    private void prepareAnalysis(MatchResult... matches) {
+        List<Song> songs = Arrays.stream(matches)
+                .map(MatchResult::sourceSong).toList();
+
+        when(source.getPlaylistTracks("source-playlist"))
+                .thenReturn(songs);
+
+        for (MatchResult match : matches) {
+            List<Song> candidates = match.found()
+                    ? List.of(new Song(
+                    match.matchedId(),
+                    match.matchedTitle(),
+                    match.sourceSong().artist(),
+                    0))
+                    : List.of();
+
+            when(destination.searchCandidates(match.sourceSong()))
+                    .thenReturn(candidates);
+
+            when(matcher.findBestMatch(match.sourceSong(), candidates))
+                    .thenReturn(match);
+        }
+    }
+
+}
