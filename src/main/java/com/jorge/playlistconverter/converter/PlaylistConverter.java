@@ -8,6 +8,8 @@ import com.jorge.playlistconverter.service.MusicService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class PlaylistConverter {
     private final MusicService source;
@@ -60,7 +62,41 @@ public class PlaylistConverter {
 
         destination.addTracks(destinationPlaylistId, destinationTrackIds);
 
-        return new ConversionResult(sourcePlaylistId, destinationPlaylistId, matches, destinationTrackIds.size());
+        return new ConversionResult(sourcePlaylistId, destinationPlaylistId, matches,
+                destinationTrackIds.size(), 0);
+    }
+
+    public ConversionResult convertIntoExistingPlaylist(String sourcePlaylistId,
+                                                        String destinationPlaylistId){
+        if (sourcePlaylistId == null || sourcePlaylistId.isBlank()){
+            throw new IllegalArgumentException("O ID da playlist de origem deve ser informado.");
+        }
+
+        if (destinationPlaylistId == null || destinationPlaylistId.isBlank()){
+            throw new IllegalArgumentException("O ID da playlist de destino deve ser informado.");
+        }
+
+        Set<String> existingId = destination
+                .getPlaylistTracksAlreadyAdded(destinationPlaylistId)
+                .stream().map(Song::id).collect(Collectors.toSet());
+
+        List<MatchResult> matches = analyzePlaylist(sourcePlaylistId);
+
+        List<String> matchedIds = matches.stream()
+                .filter(MatchResult::found)
+                .map(MatchResult::matchedId)
+                .toList();
+
+        List<String> newIds = matchedIds.stream()
+                .filter(id ->   !existingId.contains(id))
+                .distinct().toList();
+
+        if (!newIds.isEmpty()){
+            destination.addTracks(destinationPlaylistId, newIds);
+        }
+
+        return new ConversionResult(sourcePlaylistId, destinationPlaylistId, matches,
+                newIds.size(), matchedIds.size() - newIds.size());
     }
 
 
