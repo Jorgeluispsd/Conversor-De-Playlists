@@ -189,6 +189,70 @@ class ExistingPlaylistPreviewTest {
         verifyNoMoreInteractions(destination);
     }
 
+    @Test
+    void shouldSearchOnlyForSongsNotMatchedInDestination() {
+        Song firstSong = new Song("source-A", "Song A",
+                "Artist A", 200000);
+
+        Song secondSong = new Song("source-B", "Song B",
+                "Artist B", 180000);
+
+        Song existingSong = new Song("existing-video", "Artist A - Song A (Official Audio)",
+                "Artist A", 0);
+
+        List<Song> existingSongs = List.of(existingSong);
+
+        List<Song> candidates = List.of(
+                new Song("new-video", "Song B", "Artist B", 0));
+
+        MatchResult existingMatch = new MatchResult(
+                firstSong, "existing-video",
+                existingSong.title(), 0.90);
+
+        MatchResult missingExistingMatch =
+                new MatchResult(secondSong, null, null, 0.0);
+
+        MatchResult newMatch =
+                new MatchResult(secondSong, "new-video", "Song B", 0.95);
+
+        when(destination.getPlaylistTracksAlreadyAdded("destination-playlist"))
+                .thenReturn(existingSongs);
+
+        when(source.getPlaylistTracks("source-playlist"))
+                .thenReturn(List.of(firstSong, secondSong));
+
+        when(matcher.findExistingMatch(firstSong, existingSongs))
+                .thenReturn(existingMatch);
+
+        when(matcher.findExistingMatch(secondSong, existingSongs))
+                .thenReturn(missingExistingMatch);
+
+        when(destination.searchCandidates(secondSong))
+                .thenReturn(candidates);
+
+        when(matcher.findBestMatch(secondSong, candidates))
+                .thenReturn(newMatch);
+
+        PlaylistPreview result = converter.previewIntoExistingPlaylist(
+                "source-playlist", "destination-playlist");
+
+        assertEquals(List.of(existingMatch, newMatch), result.matches());
+        assertEquals(2L, result.foundCount());
+        assertEquals(1L, result.alreadyPresentCount());
+        assertEquals(1, result.newTrackCount());
+        assertEquals(List.of("new-video"), result.newTrackIds());
+
+        verify(destination)
+                .getPlaylistTracksAlreadyAdded("destination-playlist");
+        verify(destination).searchCandidates(secondSong);
+        verifyNoMoreInteractions(destination);
+
+        verify(matcher).findExistingMatch(firstSong, existingSongs);
+        verify(matcher).findExistingMatch(secondSong, existingSongs);
+        verify(matcher).findBestMatch(secondSong, candidates);
+        verifyNoMoreInteractions(matcher);
+    }
+
     private MatchResult match(String sourceId, String videoId) {
         Song song = new Song(
                 sourceId,
@@ -209,6 +273,13 @@ class ExistingPlaylistPreviewTest {
                 .thenReturn(songs);
 
         for (MatchResult match : matches) {
+            when(matcher.findExistingMatch(
+                    eq(match.sourceSong()),
+                    anyList()))
+                    .thenReturn(new MatchResult(
+                            match.sourceSong(),
+                            null, null, 0.0));
+
             List<Song> candidates = match.found()
                     ? List.of(new Song(
                     match.matchedId(),

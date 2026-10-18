@@ -216,6 +216,42 @@ class ExistingPlaylistConversionTest {
         verify(destination, never()).createPlaylist(anyString());
     }
 
+    @Test
+    void shouldSkipExistingMatchWithoutSearchingOrWriting() {
+        Song existingSong = new Song(
+                "existing-video", "Artist A - Song A (Official Audio)",
+                "Artist A", 0);
+
+        List<Song> existingSongs = List.of(existingSong);
+
+        MatchResult existingMatch = new MatchResult(
+                firstSong, "existing-video",
+                existingSong.title(), 0.90);
+
+        when(destination.getPlaylistTracksAlreadyAdded("destination-playlist"))
+                .thenReturn(existingSongs);
+
+        when(source.getPlaylistTracks("source-playlist"))
+                .thenReturn(List.of(firstSong));
+
+        when(matcher.findExistingMatch(firstSong, existingSongs))
+                .thenReturn(existingMatch);
+
+        ConversionResult result = converter.convertIntoExistingPlaylist(
+                "source-playlist", "destination-playlist");
+
+        assertEquals(0, result.insertedCount());
+        assertEquals(1, result.skippedCount());
+        assertEquals(List.of(existingMatch), result.matches());
+
+        verify(matcher).findExistingMatch(firstSong, existingSongs);
+        verifyNoMoreInteractions(matcher);
+
+        verify(destination)
+                .getPlaylistTracksAlreadyAdded("destination-playlist");
+        verifyNoMoreInteractions(destination);
+    }
+
     private void prepareAnalysis(MatchResult... matches) {
         List<Song> songs = Arrays.stream(matches)
                 .map(MatchResult::sourceSong).toList();
@@ -224,6 +260,13 @@ class ExistingPlaylistConversionTest {
                 .thenReturn(songs);
 
         for (MatchResult match : matches) {
+            when(matcher.findExistingMatch(
+                    eq(match.sourceSong()),
+                    anyList()))
+                    .thenReturn(new MatchResult(
+                            match.sourceSong(),
+                            null, null, 0.0));
+
             List<Song> candidates = match.found()
                     ? List.of(new Song(
                     match.matchedId(),

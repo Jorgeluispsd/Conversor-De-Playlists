@@ -25,6 +25,12 @@ public class PlaylistConverter {
     }
 
     public List<MatchResult> analyzePlaylist(String sourcePlaylistId) {
+        return analyzePlaylist(sourcePlaylistId, List.of());
+
+    }
+
+    private List<MatchResult> analyzePlaylist(String sourcePlaylistId, List<Song> existingSongs){
+
         if (sourcePlaylistId == null || sourcePlaylistId.isBlank()) {
             throw new IllegalArgumentException("O ID da playlist de origem deve ser informado.");
         }
@@ -34,8 +40,7 @@ public class PlaylistConverter {
         List<MatchResult> results = new ArrayList<>();
 
         for (Song song : songs){
-
-            results.add(analyzeSong(song));
+            results.add(analyzeSong(song, existingSongs));
         }
 
         return List.copyOf(results);
@@ -56,6 +61,25 @@ public class PlaylistConverter {
         log.debug("Resultado da análise: {}", result);
 
         return result;
+    }
+
+    private MatchResult analyzeSong(Song song, List<Song> existingSongs){
+
+        if (existingSongs.isEmpty()){
+            return analyzeSong(song);
+        }
+
+        MatchResult existingMatch = matcher.findExistingMatch(song, existingSongs);
+
+        if (existingMatch.found()){
+            log.debug(
+                    "Correspondência já presente no destino: {}",
+                    existingMatch);
+
+            return existingMatch;
+        }
+
+        return analyzeSong(song);
     }
 
     public ConversionResult convertPlaylist(String sourcePlaylistId, String destinationPlaylistName){
@@ -81,29 +105,18 @@ public class PlaylistConverter {
 
     public ConversionResult convertIntoExistingPlaylist(String sourcePlaylistId,
                                                         String destinationPlaylistId){
-        validatePlaylistIds(sourcePlaylistId, destinationPlaylistId);
+        PlaylistPreview preview = previewIntoExistingPlaylist(sourcePlaylistId,
+                destinationPlaylistId);
 
-        Set<String> existingId = destination
-                .getPlaylistTracksAlreadyAdded(destinationPlaylistId)
-                .stream().map(Song::id).collect(Collectors.toSet());
+        List<String> newIds = preview.newTrackIds();
 
-        List<MatchResult> matches = analyzePlaylist(sourcePlaylistId);
-
-        List<String> matchedIds = matches.stream()
-                .filter(MatchResult::found)
-                .map(MatchResult::matchedId)
-                .toList();
-
-        List<String> newIds = matchedIds.stream()
-                .filter(id ->   !existingId.contains(id))
-                .distinct().toList();
-
-        if (!newIds.isEmpty()){
+        if (!newIds.isEmpty())
             destination.addTracks(destinationPlaylistId, newIds);
-        }
 
-        return new ConversionResult(sourcePlaylistId, destinationPlaylistId, matches,
-                newIds.size(), matchedIds.size() - newIds.size());
+        int skippedCount = (int) preview.foundCount() - newIds.size();
+
+        return new ConversionResult(sourcePlaylistId, destinationPlaylistId,
+                preview.matches(), newIds.size(), skippedCount);
     }
 
     public PlaylistPreview previewPlaylist(String sourcePlaylistId) {
@@ -116,13 +129,17 @@ public class PlaylistConverter {
                                                        String destinationPlaylistId){
         validatePlaylistIds(sourcePlaylistId, destinationPlaylistId);
 
-        Set<String> existingId = destination
-                .getPlaylistTracksAlreadyAdded(destinationPlaylistId)
-                .stream().map(Song::id).collect(Collectors.toSet());
+        List<Song> existingSongs =
+                destination.getPlaylistTracksAlreadyAdded(destinationPlaylistId);
 
-        List<MatchResult> matches = analyzePlaylist(sourcePlaylistId);
+        Set<String> existingIds = existingSongs.stream()
+                .map(Song::id)
+                .collect(Collectors.toSet());
 
-        return new PlaylistPreview(sourcePlaylistId, destinationPlaylistId, matches, existingId);
+        List<MatchResult> matches = analyzePlaylist(sourcePlaylistId, existingSongs);
+
+        return new PlaylistPreview(sourcePlaylistId, destinationPlaylistId,
+                matches, existingIds);
     }
 
     private void validatePlaylistIds(String sourcePlaylistId, String destinationPlaylistId){
