@@ -89,10 +89,26 @@ public class YoutubeMusicService implements MusicService {
     }
 
     @Override
-    public List<Song> searchCandidates(Song sourceSong) {
-        // Busca implementada: uma chamada search.list por faixa, retornando até cinco candidatos.
+    public List<Song> searchCandidates(Song sourceSong){
         String query = sourceSong.artist() + " " + sourceSong.title();
 
+        List<Song> candidates = searchByQuery(query);
+
+        if (!candidates.isEmpty()){
+            return candidates;
+        }
+
+        String simplifiedTitle = simplifySearchTitle(sourceSong.title());
+        String simplifiedQuery = sourceSong.artist() + " " + simplifiedTitle;
+
+        if (simplifiedTitle.isBlank() || simplifiedQuery.equals(query)){
+            return candidates;
+        }
+
+        return searchByQuery(simplifiedQuery);
+    }
+
+    private List<Song> searchByQuery(String query){
         try {
 
             YouTube.Search.List request = youtube.search()
@@ -293,5 +309,12 @@ public class YoutubeMusicService implements MusicService {
         YouTube authenticatedYoutube = authenticatedClientFactory.create();
 
         return readPlaylistTracks(authenticatedYoutube, playlistId, null);
+    }
+
+    private String simplifySearchTitle(String title) {
+        return title
+                .replaceAll("\\([^)]*\\)|\\[[^]]*\\]", " ")
+                .replaceAll("\\s+", " ")
+                .strip();
     }
 }
