@@ -1,5 +1,6 @@
 package com.jorge.playlistconverter.converter;
 
+import com.jorge.playlistconverter.errors.conversion.PlaylistPreviewChangedException;
 import com.jorge.playlistconverter.matcher.TrackMatcher;
 import com.jorge.playlistconverter.model.MatchResult;
 import com.jorge.playlistconverter.model.Song;
@@ -152,5 +153,34 @@ public class PlaylistConverter {
             throw new IllegalArgumentException(
                     "O ID da playlist de destino deve ser informado.");
         }
+    }
+
+    public ConversionResult executeExistingPlaylistPreview(PlaylistPreview preview){
+        Objects.requireNonNull(preview, "A prévia deve ser informada.");
+
+        validatePlaylistIds(preview.sourcePlaylistId(), preview.destinationPlaylistId());
+
+        Set<String> currentDestinationIds = destination.getPlaylistTracksAlreadyAdded(
+                preview.destinationPlaylistId()).stream().map(Song::id).collect(Collectors.toSet());
+
+        if (!currentDestinationIds.containsAll(preview.existingDestinationIds())){
+            throw new PlaylistPreviewChangedException(
+                    "Itens da playlist de destino foram removidos "
+                            + "desde a análise. Gere uma nova prévia "
+                            + "antes de executar a conversão.");
+        }
+
+        List<String> idsToInsert = preview.newTrackIds().stream()
+                .filter(id -> !currentDestinationIds.contains(id))
+                .collect(Collectors.toList());
+
+        if (!idsToInsert.isEmpty()){
+            destination.addTracks(preview.destinationPlaylistId(), idsToInsert);
+        }
+
+        int skippedCount = (int) preview.foundCount() - idsToInsert.size();
+
+        return new ConversionResult(preview.sourcePlaylistId(), preview.destinationPlaylistId(),
+                preview.matches(), idsToInsert.size(), skippedCount);
     }
 }
