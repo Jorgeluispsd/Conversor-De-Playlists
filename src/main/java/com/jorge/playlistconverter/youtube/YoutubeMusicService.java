@@ -9,6 +9,7 @@ import com.jorge.playlistconverter.errors.youtube.*;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
 import com.jorge.playlistconverter.youtube.authorization.YoutubeAuthenticatedClientFactory;
+import static org.apache.commons.text.StringEscapeUtils.unescapeHtml4;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -60,8 +61,8 @@ public class YoutubeMusicService implements MusicService {
                 for (PlaylistItem item : response.getItems()) {
                     songs.add(new Song(
                             item.getSnippet().getResourceId().getVideoId(),
-                            item.getSnippet().getTitle(),
-                            item.getSnippet().getVideoOwnerChannelTitle(),
+                            unescapeHtml4(item.getSnippet().getTitle()),
+                            unescapeHtml4(item.getSnippet().getVideoOwnerChannelTitle()),
                             0
                     ));
                 }
@@ -123,8 +124,8 @@ public class YoutubeMusicService implements MusicService {
             return response.getItems().stream()
                     .map(item -> new Song(
                             item.getId().getVideoId(),
-                            item.getSnippet().getTitle(),
-                            item.getSnippet().getChannelTitle(),
+                            unescapeHtml4(item.getSnippet().getTitle()),
+                            unescapeHtml4(item.getSnippet().getChannelTitle()),
                             0
                     ))
                     .toList();

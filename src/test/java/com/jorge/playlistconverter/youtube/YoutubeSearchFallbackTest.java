@@ -196,6 +196,40 @@ class YoutubeSearchFallbackTest {
         verify(request, times(1)).execute();
     }
 
+    @Test
+    void shouldDecodeHtmlEntitiesInSearchResults() throws IOException {
+        Song song = new Song(
+                "source",
+                "Vitória Regia",
+                "Franco, The Sir!",
+                195582);
+
+        SearchResult candidate = new SearchResult()
+                .setId(new ResourceId().setVideoId("WAoCJ1OXGPg"))
+                .setSnippet(new SearchResultSnippet()
+                        .setTitle(
+                                "&quot;VITÓRIA REGIA&quot; ft. Franco The Sir, "
+                                        + "M&#39;Dep, Ian Trunks, Yuri Redicopa")
+                        .setChannelTitle("IAN TRUNKS"));
+
+        YouTube.Search.List request = searchRequest();
+
+        when(request.execute()).thenReturn(
+                new SearchListResponse().setItems(List.of(candidate)));
+
+        List<Song> result = service.searchCandidates(song);
+
+        assertEquals(1, result.size());
+
+        assertEquals(
+                "\"VITÓRIA REGIA\" ft. Franco The Sir, "
+                        + "M'Dep, Ian Trunks, Yuri Redicopa",
+                result.get(0).title());
+
+        assertEquals("IAN TRUNKS", result.get(0).artist());
+        verify(request, times(1)).execute();
+    }
+
     private YouTube.Search.List searchRequest() throws IOException {
         YouTube.Search resource = mock(YouTube.Search.class);
 

@@ -6,6 +6,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.ChannelListResponse;
+import com.jorge.playlistconverter.converter.ConversionResult;
 import com.jorge.playlistconverter.converter.PlaylistConverter;
 import com.jorge.playlistconverter.converter.PlaylistPreview;
 import com.jorge.playlistconverter.enums.YoutubePlaylistVisibility;
@@ -23,6 +24,7 @@ import org.springframework.context.annotation.Bean;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Scanner;
 
 
 @SpringBootApplication
@@ -499,8 +501,8 @@ public class PlaylistConverterApplication {
             PlaylistConverter converter
     ) {
         return args -> {
-            String sourcePlaylistId = "0ulqoAeaiNTF5YTKQ4nD9P";
-            String destinationPlaylistId = "PLfRsEUW_s_1I";
+            String sourcePlaylistId = "2XnKAdcompOGmEpQnngIyx";
+            String destinationPlaylistId = "PLVMPlT659QZY";
 
             PlaylistPreview preview =
                     converter.previewIntoExistingPlaylist(
@@ -547,6 +549,39 @@ public class PlaylistConverterApplication {
                             + preview.existingDestinationIds());
 
             System.out.println("\nPrévia concluída. Nenhuma escrita foi solicitada.");
+
+            System.out.println(
+                    "Destino: https://www.youtube.com/playlist?list="
+                            + preview.destinationPlaylistId());
+
+            System.out.println(
+                    "Digite CONFIRMAR para inserir os novos vídeos "
+                            + "ou qualquer outro texto para cancelar:");
+
+            Scanner input = new Scanner(System.in);
+
+            if (!input.hasNextLine()) {
+                System.out.println("Sem confirmação. Nenhum vídeo foi inserido.");
+                return;
+            }
+
+            String answer = input.nextLine().strip();
+
+            if (!"CONFIRMAR".equalsIgnoreCase(answer)) {
+                System.out.println("Conversão cancelada. Nenhum vídeo foi inserido.");
+                return;
+            }
+
+            ConversionResult result =
+                    converter.executeExistingPlaylistPreview(preview);
+
+            System.out.println("\n=== Resultado da conversão ===");
+            System.out.println("Inserções confirmadas: " + result.insertedCount());
+            System.out.println("Itens pulados: " + result.skippedCount());
+
+            System.out.println(
+                    "Playlist: https://www.youtube.com/playlist?list="
+                            + result.destinationPlaylistId());
         };
     }
 

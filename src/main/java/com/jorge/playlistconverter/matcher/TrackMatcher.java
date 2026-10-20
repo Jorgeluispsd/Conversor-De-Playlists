@@ -4,11 +4,15 @@ import com.jorge.playlistconverter.model.MatchResult;
 import com.jorge.playlistconverter.model.Song;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.similarity.JaroWinklerSimilarity;
+import org.apache.commons.text.StringEscapeUtils;
 
 import java.text.Normalizer;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Compara títulos e artistas normalizados usando Jaro-Winkler, com penalidades
@@ -33,6 +37,16 @@ public class TrackMatcher {
                     + "\\s*[\\])]",
             Pattern.CASE_INSENSITIVE);
 
+    private static final List<Pattern> INCOMPATIBLE_FORMATS = List.of(
+            Pattern.compile(
+                    "\\b(?:dj\\s+)?set\\s+completo\\b"
+                            + "|\\bfull\\s+(?:dj\\s+)?set\\b"
+                            + "|\\balbum\\s+completo\\b"
+                            + "|\\bfull\\s+album\\b"),
+            Pattern.compile(
+                    "\\b(?:react|reaction|reage|reacao)\\b"));
+
+    private static final double MIN_TITLE_TOKEN_COVERAGE = 0.6;
     private static final double MIN_CONFIDENCE = 0.5;
     private static final double CONTAINMENT_FLOOR = 0.5;
     private static final int HASHTAG_SPAM_THRESHOLD = 2;
@@ -61,6 +75,13 @@ public class TrackMatcher {
                         candidate.id(),
                         candidate.title());
 
+                continue;
+            }
+
+            if (!hasTitleEvidence(sourceSong.title(), candidate.title())
+                    || hasIncompatibleFormat(sourceSong.title(), candidate.title())){
+                log.debug("Candidato descartado por título ou formato incompatível: "
+                                + "id={} | título={}", candidate.id(), candidate.title());
                 continue;
             }
 
@@ -110,15 +131,13 @@ public class TrackMatcher {
 
 
     private String normalizeText(String text) {
-        if (text == null || text.isEmpty()) return "";
+        if (text == null || text.isEmpty()) {return "";}
 
-        String normalized = Normalizer.normalize(text, Normalizer.Form.NFD)
-                .replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
+        String normalized = normalizeCharacters(text)
+                .replaceAll("#[\\w]+", "")
+                .replaceAll("\\([^)]*\\)", "");
 
-        normalized = normalized.toLowerCase();
-        normalized = normalized.replaceAll("#[\\w]+", "");
-        normalized = normalized.replaceAll("\\([^)]*\\)", "");
-        return normalized.trim().replaceAll("\\s+", " ");
+        return normalized.strip().replaceAll("\\s+", " ");
     }
 
     private double applyPenalty(double score, String sourceTitle, String candidateTitle) {
@@ -191,9 +210,7 @@ public class TrackMatcher {
     }
 
     private String normalizeExistingTitle(Song song){
-        String title = Normalizer.normalize(song.title(), Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .toLowerCase(Locale.ROOT);
+        String title = normalizeCharacters(song.title());
 
         title = PRESENTATION_LABEL_PATTERN.matcher(title).replaceAll(" ");
 
@@ -203,5 +220,39 @@ public class TrackMatcher {
                 "");
 
         return title.strip().replaceAll("\\s+", " ");
+    }
+
+    private String normalizeCharacters(String text){
+        return Normalizer.normalize(StringEscapeUtils.unescapeHtml4(text),
+        Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
+    }
+
+    private Set<String> titleTokens(String title){
+        String normalized = NUMBERED_PART_PATTERN.matcher(normalizeText(title))
+                .replaceAll(" ").replaceAll("[^\\p{L}\\p{N}]+", " ");
+
+        return Arrays.stream(normalized.strip().split("\\s+"))
+                .filter(token -> !token.isBlank())
+                .collect(Collectors.toSet());
+    }
+
+    private boolean hasTitleEvidence(String sourceTitle, String candidateTitle){
+        Set<String> sourceTokens = titleTokens(sourceTitle);
+        Set<String> candidateTokens = titleTokens(candidateTitle);
+
+        long sharedTokens = sourceTokens.stream().filter(candidateTokens::contains)
+                .count();
+
+        return !sourceTokens.isEmpty() &&
+                (double) sharedTokens / sourceTokens.size()
+                >= MIN_TITLE_TOKEN_COVERAGE;
+    }
+
+    private boolean hasIncompatibleFormat(String sourceTitle, String candidateTitle){
+        String source = normalizeCharacters(sourceTitle);
+        String candidate = normalizeCharacters(candidateTitle);
+
+        return INCOMPATIBLE_FORMATS.stream().anyMatch(pattern ->
+                pattern.matcher(candidate).find() && !pattern.matcher(source).find());
     }
 }
