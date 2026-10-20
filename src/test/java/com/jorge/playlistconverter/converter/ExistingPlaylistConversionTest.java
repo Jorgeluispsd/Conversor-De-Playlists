@@ -247,7 +247,7 @@ class ExistingPlaylistConversionTest {
         verify(matcher).findExistingMatch(firstSong, existingSongs);
         verifyNoMoreInteractions(matcher);
 
-        verify(destination)
+        verify(destination, times(2))
                 .getPlaylistTracksAlreadyAdded("destination-playlist");
         verifyNoMoreInteractions(destination);
     }

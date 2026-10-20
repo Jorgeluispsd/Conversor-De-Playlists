@@ -109,15 +109,7 @@ public class PlaylistConverter {
         PlaylistPreview preview = previewIntoExistingPlaylist(sourcePlaylistId,
                 destinationPlaylistId);
 
-        List<String> newIds = preview.newTrackIds();
-
-        if (!newIds.isEmpty())
-            destination.addTracks(destinationPlaylistId, newIds);
-
-        int skippedCount = (int) preview.foundCount() - newIds.size();
-
-        return new ConversionResult(sourcePlaylistId, destinationPlaylistId,
-                preview.matches(), newIds.size(), skippedCount);
+        return executeExistingPlaylistPreview(preview);
     }
 
     public PlaylistPreview previewPlaylist(String sourcePlaylistId) {
