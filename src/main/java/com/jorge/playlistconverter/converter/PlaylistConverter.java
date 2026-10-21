@@ -2,86 +2,27 @@ package com.jorge.playlistconverter.converter;
 
 import com.jorge.playlistconverter.enums.PlaylistVisibility;
 import com.jorge.playlistconverter.errors.conversion.PlaylistPreviewChangedException;
-import com.jorge.playlistconverter.matcher.TrackMatcher;
+
 import com.jorge.playlistconverter.model.MatchResult;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
-import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Slf4j
 public class PlaylistConverter {
-    private final MusicService source;
+    private final PlaylistAnalyzer analyzer;
     private final MusicService destination;
-    private final TrackMatcher matcher;
 
-    public PlaylistConverter(MusicService source, MusicService destination, TrackMatcher matcher) {
-        this.source = Objects.requireNonNull(source);
+    public PlaylistConverter(PlaylistAnalyzer analyzer, MusicService destination) {
+        this.analyzer = Objects.requireNonNull(analyzer);
         this.destination = Objects.requireNonNull(destination);
-        this.matcher = Objects.requireNonNull(matcher);
     }
 
     public List<MatchResult> analyzePlaylist(String sourcePlaylistId) {
-        return analyzePlaylist(sourcePlaylistId, List.of());
-
-    }
-
-    private List<MatchResult> analyzePlaylist(String sourcePlaylistId, List<Song> existingSongs){
-
-        if (sourcePlaylistId == null || sourcePlaylistId.isBlank()) {
-            throw new IllegalArgumentException("O ID da playlist de origem deve ser informado.");
-        }
-
-        List<Song> songs = source.getPlaylistTracks(sourcePlaylistId);
-
-        List<MatchResult> results = new ArrayList<>();
-
-        for (Song song : songs){
-            results.add(analyzeSong(song, existingSongs));
-        }
-
-        return List.copyOf(results);
-    }
-
-    private MatchResult analyzeSong(Song song){
-        List<Song> candidates = destination.searchCandidates(song);
-
-        log.debug("Origem da análise: {}", song);
-
-        for (int index = 0; index < candidates.size(); index++) {
-
-            log.debug("Candidato {}: {}", index + 1, candidates.get(index));
-        }
-
-        MatchResult result = matcher.findBestMatch(song, candidates);
-
-        log.debug("Resultado da análise: {}", result);
-
-        return result;
-    }
-
-    private MatchResult analyzeSong(Song song, List<Song> existingSongs){
-
-        if (existingSongs.isEmpty()){
-            return analyzeSong(song);
-        }
-
-        MatchResult existingMatch = matcher.findExistingMatch(song, existingSongs);
-
-        if (existingMatch.found()){
-            log.debug(
-                    "Correspondência já presente no destino: {}",
-                    existingMatch);
-
-            return existingMatch;
-        }
-
-        return analyzeSong(song);
+        return analyzer.analyze(sourcePlaylistId);
     }
 
     public ConversionResult convertPlaylist(String sourcePlaylistId, String destinationPlaylistName){
@@ -130,7 +71,7 @@ public class PlaylistConverter {
                 .map(Song::id)
                 .collect(Collectors.toSet());
 
-        List<MatchResult> matches = analyzePlaylist(sourcePlaylistId, existingSongs);
+        List<MatchResult> matches = analyzer.analyze(sourcePlaylistId, existingSongs);
 
         return new PlaylistPreview(sourcePlaylistId, destinationPlaylistId,
                 matches, existingIds);

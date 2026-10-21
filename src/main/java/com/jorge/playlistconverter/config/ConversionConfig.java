@@ -1,5 +1,6 @@
 package com.jorge.playlistconverter.config;
 
+import com.jorge.playlistconverter.converter.PlaylistAnalyzer;
 import com.jorge.playlistconverter.converter.PlaylistConverter;
 import com.jorge.playlistconverter.matcher.TrackMatcher;
 import com.jorge.playlistconverter.spotify.SpotifyMusicService;
@@ -16,9 +17,15 @@ public class ConversionConfig {
     }
 
     @Bean
-    public PlaylistConverter spotifyToYoutubeConverter(SpotifyMusicService spotifyMusicService,
-                                                       YoutubeMusicService youtubeMusicService,
-                                                       TrackMatcher trackMatcher) {
-        return new PlaylistConverter(spotifyMusicService, youtubeMusicService, trackMatcher);
+    public PlaylistAnalyzer spotifyToYoutubeAnalyzer(SpotifyMusicService spotifyMusicService,
+                                                     YoutubeMusicService youtubeMusicService,
+                                                     TrackMatcher trackMatcher){
+        return new PlaylistAnalyzer(spotifyMusicService, youtubeMusicService, trackMatcher);
+    }
+
+    @Bean
+    public PlaylistConverter spotifyToYoutubeConverter(PlaylistAnalyzer spotifyToYoutubeAnalyzer,
+                                                       YoutubeMusicService youtubeMusicService) {
+        return new PlaylistConverter(spotifyToYoutubeAnalyzer, youtubeMusicService);
     }
 }

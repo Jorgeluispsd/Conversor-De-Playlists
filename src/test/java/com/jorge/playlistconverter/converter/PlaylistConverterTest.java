@@ -34,7 +34,9 @@ class PlaylistConverterTest {
         destination = mock(MusicService.class);
         matcher = mock(TrackMatcher.class);
 
-        converter = new PlaylistConverter(source, destination, matcher);
+        PlaylistAnalyzer analyzer = new PlaylistAnalyzer(source, destination, matcher);
+
+        converter = new PlaylistConverter(analyzer, destination);
     }
 
     @Test
