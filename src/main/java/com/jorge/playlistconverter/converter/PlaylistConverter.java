@@ -107,20 +107,20 @@ public class PlaylistConverter {
 
     public ConversionResult convertIntoExistingPlaylist(String sourcePlaylistId,
                                                         String destinationPlaylistId){
-        PlaylistPreview preview = previewIntoExistingPlaylist(sourcePlaylistId,
+        PlaylistPreview preview = previewExistingPlaylist(sourcePlaylistId,
                 destinationPlaylistId);
 
         return executeExistingPlaylistPreview(preview);
     }
 
-    public PlaylistPreview previewPlaylist(String sourcePlaylistId) {
+    public PlaylistPreview previewNewPlaylist(String sourcePlaylistId) {
         List<MatchResult> matches = analyzePlaylist(sourcePlaylistId);
 
         return new PlaylistPreview(sourcePlaylistId, matches);
     }
 
-    public PlaylistPreview previewIntoExistingPlaylist(String sourcePlaylistId,
-                                                       String destinationPlaylistId){
+    public PlaylistPreview previewExistingPlaylist(String sourcePlaylistId,
+                                                   String destinationPlaylistId){
         validatePlaylistIds(sourcePlaylistId, destinationPlaylistId);
 
         List<Song> existingSongs =

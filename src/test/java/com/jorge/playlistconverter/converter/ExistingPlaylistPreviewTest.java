@@ -47,7 +47,7 @@ class ExistingPlaylistPreviewTest {
 
         prepareAnalysis(existing, firstNew, repeated, missing, secondNew);
 
-        PlaylistPreview result = converter.previewIntoExistingPlaylist(
+        PlaylistPreview result = converter.previewExistingPlaylist(
                 "source-playlist",
                 "destination-playlist");
 
@@ -86,7 +86,7 @@ class ExistingPlaylistPreviewTest {
                 match("source-A", "video-A"),
                 match("source-B", "video-A"));
 
-        PlaylistPreview result = converter.previewIntoExistingPlaylist(
+        PlaylistPreview result = converter.previewExistingPlaylist(
                 "source-playlist", "destination-playlist");
 
         assertEquals(2L, result.foundCount());
@@ -107,7 +107,7 @@ class ExistingPlaylistPreviewTest {
         when(source.getPlaylistTracks("source-playlist"))
                 .thenReturn(List.of());
 
-        PlaylistPreview result = converter.previewIntoExistingPlaylist(
+        PlaylistPreview result = converter.previewExistingPlaylist(
                 "source-playlist", "destination-playlist");
 
         assertEquals(0, result.totalCount());
@@ -127,12 +127,12 @@ class ExistingPlaylistPreviewTest {
         for (String invalidId : new String[]{null, "", "   "}) {
             assertThrows(
                     IllegalArgumentException.class,
-                    () -> converter.previewIntoExistingPlaylist(invalidId,
+                    () -> converter.previewExistingPlaylist(invalidId,
                             "destination-playlist"));
 
             assertThrows(
                     IllegalArgumentException.class,
-                    () -> converter.previewIntoExistingPlaylist(
+                    () -> converter.previewExistingPlaylist(
                             "source-playlist", invalidId));
         }
 
@@ -150,7 +150,7 @@ class ExistingPlaylistPreviewTest {
 
         YoutubePlaylistReadException result = assertThrows(
                 YoutubePlaylistReadException.class,
-                () -> converter.previewIntoExistingPlaylist(
+                () -> converter.previewExistingPlaylist(
                         "source-playlist", "destination-playlist"));
 
         assertSame(original, result);
@@ -178,7 +178,7 @@ class ExistingPlaylistPreviewTest {
 
         YoutubeSearchException result = assertThrows(
                 YoutubeSearchException.class,
-                () -> converter.previewIntoExistingPlaylist(
+                () -> converter.previewExistingPlaylist(
                         "source-playlist", "destination-playlist"));
 
         assertSame(original, result);
@@ -233,7 +233,7 @@ class ExistingPlaylistPreviewTest {
         when(matcher.findBestMatch(secondSong, candidates))
                 .thenReturn(newMatch);
 
-        PlaylistPreview result = converter.previewIntoExistingPlaylist(
+        PlaylistPreview result = converter.previewExistingPlaylist(
                 "source-playlist", "destination-playlist");
 
         assertEquals(List.of(existingMatch, newMatch), result.matches());

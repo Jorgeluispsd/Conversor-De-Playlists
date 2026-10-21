@@ -4,13 +4,11 @@ import com.jorge.playlistconverter.converter.ConversionResult;
 import com.jorge.playlistconverter.converter.PlaylistConverter;
 import com.jorge.playlistconverter.converter.PlaylistPreview;
 import com.jorge.playlistconverter.enums.PlaylistVisibility;
-import com.jorge.playlistconverter.model.Song;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
-import java.util.List;
 import java.util.Scanner;
 
 
@@ -492,7 +490,7 @@ public class PlaylistConverterApplication {
             String destinationPlaylistId = "PLVMPlT659QZY";
 
             PlaylistPreview preview =
-                    converter.previewIntoExistingPlaylist(
+                    converter.previewExistingPlaylist(
                             sourcePlaylistId,
                             destinationPlaylistId);
 
@@ -581,7 +579,7 @@ public class PlaylistConverterApplication {
             PlaylistVisibility visibility = PlaylistVisibility.PRIVATE;
 
             PlaylistPreview preview =
-                    converter.previewPlaylist(sourcePlaylistId);
+                    converter.previewNewPlaylist(sourcePlaylistId);
 
             System.out.println("=== Prévia Spotify → nova playlist YouTube ===");
             System.out.println("Nome do destino: " + destinationName);

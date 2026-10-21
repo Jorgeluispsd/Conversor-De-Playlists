@@ -342,7 +342,7 @@ class PlaylistConverterTest {
                 .thenReturn(missingMatch);
 
         PlaylistPreview result =
-                converter.previewPlaylist("source-playlist");
+                converter.previewNewPlaylist("source-playlist");
 
         assertEquals("source-playlist", result.sourcePlaylistId());
         assertEquals(2, result.totalCount());
