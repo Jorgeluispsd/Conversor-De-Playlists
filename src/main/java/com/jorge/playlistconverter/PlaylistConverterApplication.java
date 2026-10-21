@@ -1,28 +1,15 @@
 package com.jorge.playlistconverter;
 
-import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
-import com.google.api.services.youtube.YouTube;
-import com.google.api.services.youtube.model.ChannelListResponse;
 import com.jorge.playlistconverter.converter.ConversionResult;
 import com.jorge.playlistconverter.converter.PlaylistConverter;
 import com.jorge.playlistconverter.converter.PlaylistPreview;
-import com.jorge.playlistconverter.enums.YoutubePlaylistVisibility;
+import com.jorge.playlistconverter.enums.PlaylistVisibility;
 import com.jorge.playlistconverter.model.Song;
-import com.jorge.playlistconverter.spotify.SpotifyMusicService;
-import com.jorge.playlistconverter.state.database.H2SyncStateStore;
-import com.jorge.playlistconverter.youtube.GoogleAuthService;
-import com.jorge.playlistconverter.youtube.YoutubeMusicService;
-import com.jorge.playlistconverter.youtube.authorization.GoogleAuthorizationFlowFactory;
-import com.jorge.playlistconverter.youtube.authorization.GoogleClientSecretsLoader;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
 
@@ -495,7 +482,7 @@ public class PlaylistConverterApplication {
 
 
  */
-
+/*
     @Bean
     CommandLineRunner existingPlaylistPreviewRunner(
             PlaylistConverter converter
@@ -581,6 +568,77 @@ public class PlaylistConverterApplication {
 
             System.out.println(
                     "Playlist: https://www.youtube.com/playlist?list="
+                            + result.destinationPlaylistId());
+        };
+    }
+ */
+
+    @Bean
+    CommandLineRunner newPlaylistPreviewRunner(PlaylistConverter converter) {
+        return args -> {
+            String sourcePlaylistId = "2S6FRrlOthv0w7ITaaB4mp";
+            String destinationName = "Playlist Converter - Teste completo";
+            PlaylistVisibility visibility = PlaylistVisibility.PRIVATE;
+
+            PlaylistPreview preview =
+                    converter.previewPlaylist(sourcePlaylistId);
+
+            System.out.println("=== Prévia Spotify → nova playlist YouTube ===");
+            System.out.println("Nome do destino: " + destinationName);
+            System.out.println("Visibilidade: " + visibility);
+            System.out.println("Total na origem: " + preview.totalCount());
+            System.out.println("Encontradas: " + preview.foundCount());
+            System.out.println("Para adicionar: " + preview.newTrackCount());
+            System.out.println(
+                    "Candidatos repetidos: " + preview.repeatedCandidateCount());
+
+            System.out.println("\n=== Correspondências selecionadas ===");
+
+            preview.matches().stream()
+                    .filter(match -> match.found())
+                    .forEach(match -> System.out.printf(
+                            "%s → %s | ID: %s%n",
+                            match.sourceSong().title(),
+                            match.matchedTitle(),
+                            match.matchedId()));
+
+            System.out.println(
+                    "\n=== Não encontradas: "
+                            + preview.notFoundSongs().size() + " ===");
+
+            preview.notFoundSongs().forEach(song -> System.out.printf(
+                    "- %s — %s%n", song.title(),
+                    song.artist()));
+
+            if (preview.newTrackCount() == 0) {
+                System.out.println(
+                        "Nenhuma música disponível para inserir. "
+                                + "A playlist não será criada.");
+                return;
+            }
+
+            System.out.println(
+                    "\nDigite CONFIRMAR para criar a playlist e inserir "
+                            + "as músicas, ou qualquer outro texto para cancelar:");
+
+            Scanner input = new Scanner(System.in);
+
+            if (!input.hasNextLine()
+                    || !"CONFIRMAR".equalsIgnoreCase(input.nextLine().strip())) {
+                System.out.println(
+                        "Conversão cancelada. Nenhuma playlist foi criada.");
+                return;
+            }
+
+            ConversionResult result = converter.executeNewPlaylistPreview(
+                    preview,
+                    destinationName,
+                    visibility);
+
+            System.out.println("\n=== Conversão concluída ===");
+            System.out.println("Adicionadas: " + result.insertedCount());
+            System.out.println("Repetidas puladas: " + result.skippedCount());
+            System.out.println("Link: https://www.youtube.com/playlist?list="
                             + result.destinationPlaylistId());
         };
     }

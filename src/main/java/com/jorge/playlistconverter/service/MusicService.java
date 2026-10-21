@@ -1,5 +1,6 @@
 package com.jorge.playlistconverter.service;
 
+import com.jorge.playlistconverter.enums.PlaylistVisibility;
 import com.jorge.playlistconverter.model.Song;
 
 import java.util.List;
@@ -19,6 +20,9 @@ public interface MusicService {
 
     // Fase 6: criar playlist no destino autorizado e retornar o ID.
     String createPlaylist(String name);
+
+
+    String createPlaylist(String name, PlaylistVisibility visibility);
 
     // Fase 6: inserir os IDs selecionados na ordem recebida, respeitando o endpoint de cada plataforma.
     void addTracks(String playlistId, List<String> trackIds);

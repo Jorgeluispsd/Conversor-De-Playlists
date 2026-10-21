@@ -1,6 +1,7 @@
 package com.jorge.playlistconverter.spotify;
 
 
+import com.jorge.playlistconverter.enums.PlaylistVisibility;
 import com.jorge.playlistconverter.errors.OperationInterruptedException;
 import com.jorge.playlistconverter.errors.spotify.SpotifyAuthenticationException;
 import com.jorge.playlistconverter.errors.spotify.SpotifyPlaylistReadException;
@@ -176,8 +177,13 @@ public class SpotifyMusicService implements MusicService {
 
     @Override
     public String createPlaylist(String name) {
+        return createPlaylist(name, PlaylistVisibility.PRIVATE);
+    }
+
+    @Override
+    public String createPlaylist(String name, PlaylistVisibility visibility) {
         // TODO (Fase 6): garantir escopo de escrita, criar playlist na conta autorizada e retornar o ID.
-        throw new UnsupportedOperationException("TODO: Fase 6");
+        throw new UnsupportedOperationException("A criação de playlists no Spotify ainda não foi implementada.");
     }
 
     @Override

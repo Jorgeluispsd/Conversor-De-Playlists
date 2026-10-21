@@ -6,7 +6,7 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.Playlist;
-import com.jorge.playlistconverter.enums.YoutubePlaylistVisibility;
+import com.jorge.playlistconverter.enums.PlaylistVisibility;
 import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistCreationException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeQuotaExceededException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeSearchException;
@@ -267,8 +267,8 @@ class YoutubeMusicServiceTest {
     }
 
     @ParameterizedTest
-    @EnumSource(YoutubePlaylistVisibility.class)
-    void shouldCreatePlaylistWithSelectedVisibility(YoutubePlaylistVisibility visibility) throws IOException{
+    @EnumSource(PlaylistVisibility.class)
+    void shouldCreatePlaylistWithSelectedVisibility(PlaylistVisibility visibility) throws IOException{
         YouTube authenticatedYoutube = mock(YouTube.class);
         YouTube.Playlists resource = mock(YouTube.Playlists.class);
         YouTube.Playlists.Insert request = mock(YouTube.Playlists.Insert.class);

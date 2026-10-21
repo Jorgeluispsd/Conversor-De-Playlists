@@ -2,7 +2,7 @@ package com.jorge.playlistconverter.enums;
 
 import lombok.Getter;
 
-public enum YoutubePlaylistVisibility {
+public enum PlaylistVisibility {
     PRIVATE("private"),
     PUBLIC("public"),
     UNLISTED("unlisted");;
@@ -10,7 +10,7 @@ public enum YoutubePlaylistVisibility {
     @Getter
     private final String apiValue;
 
-    YoutubePlaylistVisibility(String apiValue){
+    PlaylistVisibility(String apiValue){
         this.apiValue = apiValue;
     }
 

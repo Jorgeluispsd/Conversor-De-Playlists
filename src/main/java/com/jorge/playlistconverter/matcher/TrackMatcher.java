@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 public class TrackMatcher {
 
     private static final List<String> UNWANTED_WORDS = List.of(
-            "cover", "live", "remix", "8d audio", "type beat", "instrumental");
+            "8d audio", "type beat");
 
     private static final Pattern NUMBERED_PART_PATTERN = Pattern.compile(
             "\\b(?:pt\\.?|part|parte)\\s*[-:]?\\s*"
@@ -52,6 +52,7 @@ public class TrackMatcher {
     private static final int HASHTAG_SPAM_THRESHOLD = 2;
 
     private final JaroWinklerSimilarity jaroWinkler = new JaroWinklerSimilarity();
+    private final TrackVersionMatcher versionMatcher = new TrackVersionMatcher();
 
     public MatchResult findBestMatch(Song sourceSong, List<Song> candidates) {
         if (candidates == null || candidates.isEmpty()) {
@@ -59,7 +60,7 @@ public class TrackMatcher {
         }
 
         String rawSourceTitle = sourceSong.title().toLowerCase();
-        String normalizedSourceTitle = normalizeText(sourceSong.title());
+        String normalizedSourceTitle = normalizeMatchTitle(sourceSong.title());
         String normalizedSourceArtist = normalizeText(sourceSong.artist());
 
         Song bestMatch = null;
@@ -78,15 +79,17 @@ public class TrackMatcher {
                 continue;
             }
 
-            if (!hasTitleEvidence(sourceSong.title(), candidate.title())
+            if (!versionMatcher.isCompatible(sourceSong.title(), candidate.title())
+                    || !hasTitleEvidence(sourceSong.title(), candidate.title())
                     || hasIncompatibleFormat(sourceSong.title(), candidate.title())){
-                log.debug("Candidato descartado por título ou formato incompatível: "
+
+                log.debug("Candidato descartado por título, versão ou formato incompatível: "
                                 + "id={} | título={}", candidate.id(), candidate.title());
                 continue;
             }
 
             String rawCandidateTitle = candidate.title().toLowerCase();
-            String normalizedCandidateTitle = normalizeText(candidate.title());
+            String normalizedCandidateTitle = normalizeMatchTitle(candidate.title());
             String normalizedCandidateArtist = normalizeText(candidate.artist());
 
             double titleSimilarity = computeTitleSimilarity(normalizedSourceTitle, normalizedCandidateTitle);
@@ -228,7 +231,7 @@ public class TrackMatcher {
     }
 
     private Set<String> titleTokens(String title){
-        String normalized = NUMBERED_PART_PATTERN.matcher(normalizeText(title))
+        String normalized = NUMBERED_PART_PATTERN.matcher(normalizeMatchTitle(title))
                 .replaceAll(" ").replaceAll("[^\\p{L}\\p{N}]+", " ");
 
         return Arrays.stream(normalized.strip().split("\\s+"))
@@ -254,5 +257,10 @@ public class TrackMatcher {
 
         return INCOMPATIBLE_FORMATS.stream().anyMatch(pattern ->
                 pattern.matcher(candidate).find() && !pattern.matcher(source).find());
+    }
+
+    private String normalizeMatchTitle(String title){
+        return normalizeText(versionMatcher.removeVersionLabels(title))
+                .replaceAll("\\s*[-–—:]\\s*$", "").strip();
     }
 }

@@ -4,7 +4,7 @@ import com.google.api.client.googleapis.json.GoogleJsonError;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.*;
-import com.jorge.playlistconverter.enums.YoutubePlaylistVisibility;
+import com.jorge.playlistconverter.enums.PlaylistVisibility;
 import com.jorge.playlistconverter.errors.youtube.*;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
@@ -160,10 +160,10 @@ public class YoutubeMusicService implements MusicService {
 
     @Override
     public String createPlaylist(String name){
-        return createPlaylist(name, YoutubePlaylistVisibility.PRIVATE);
+        return createPlaylist(name, PlaylistVisibility.PRIVATE);
     }
 
-    public String createPlaylist(String name, YoutubePlaylistVisibility visibility) {
+    public String createPlaylist(String name, PlaylistVisibility visibility) {
         if (name == null || name.isBlank()){
             throw new IllegalArgumentException("O nome da playlist deve ser informado.");
         }

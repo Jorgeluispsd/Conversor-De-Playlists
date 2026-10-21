@@ -17,23 +17,20 @@ public class TrackMatcherTest {
                 "spotify-id",
                 "Numb",
                 "Linkin Park",
-                185_000
-        );
+                185_000);
 
         Song candidate = new Song(
                 "youtube-id",
                 "Numb",
                 "Linkin Park",
-                185_000
-        );
+                185_000);
 
         TrackMatcher matcher = new TrackMatcher();
 
         // Act
         MatchResult result = matcher.findBestMatch(
                 source,
-                List.of(candidate)
-        );
+                List.of(candidate));
 
         // Assert
         assertTrue(result.found());
@@ -104,7 +101,7 @@ public class TrackMatcherTest {
     }
 
     @Test
-    void shouldPenalizeLiveVersionSourceIsStudioVersion(){
+    void shouldRejectLiveVersionWhenSourceHasNoVersionLabel(){
 
         Song source = new Song("spotify-id", "Numb",
                 "Linkin Park", 185_000);
@@ -116,10 +113,7 @@ public class TrackMatcherTest {
 
         MatchResult result = matcher.findBestMatch(source, List.of(liveCandidate));
 
-
-        assertTrue(result.found());
-        assertEquals("youtube-live", result.matchedId());
-        assertEquals(0.5, result.confidence(), 0.001);
+        assertFalse(result.found());
     }
 
     @Test
@@ -142,7 +136,7 @@ public class TrackMatcherTest {
     }
 
     @Test
-    void shouldPenalizeRemixVersionWhenSourceIsOriginalVersion(){
+    void shouldRejectRemixWhenSourceHasNoVersionLabel(){
 
         Song source = new Song("spotify-id", "Numb",
                 "Linkin Park", 185_000);
@@ -158,8 +152,7 @@ public class TrackMatcherTest {
                 "Original -> Remix confidence: " + result.confidence()
         );
 
-        assertTrue(result.found());
-        assertEquals("youtube-remix", result.matchedId());
+        assertFalse(result.found());
     }
 
     @Test
@@ -181,7 +174,7 @@ public class TrackMatcherTest {
     }
 
     @Test
-    void shouldPenalizeCoverVersionWhenSourceIsOriginalVersion() {
+    void shouldRejectCoverWhenSourceHasNoVersionLabel() {
 
         Song source = new Song("spotify-id", "Numb",
                 "Linkin Park", 185_000);
@@ -193,9 +186,7 @@ public class TrackMatcherTest {
 
         MatchResult result = matcher.findBestMatch(source, List.of(coverCandidate));
 
-        assertTrue(result.found());
-        assertEquals("youtube-cover", result.matchedId());
-        assertEquals(0.5, result.confidence(), 0.001);
+        assertFalse(result.found());
     }
 
     @Test
@@ -217,7 +208,7 @@ public class TrackMatcherTest {
     }
 
     @Test
-    void shouldPenalizeInstrumentalVersionWhenSourceIsOriginalVersion() {
+    void shouldRejectInstrumentalWhenSourceHasNoVersionLabel() {
 
         Song source = new Song("spotify-id", "Numb",
                 "Linkin Park", 185_000);
@@ -229,9 +220,7 @@ public class TrackMatcherTest {
 
         MatchResult result = matcher.findBestMatch(source, List.of(instrumentalCandidate));
 
-        assertTrue(result.found());
-        assertEquals("youtube-instrumental", result.matchedId());
-        assertEquals(0.5, result.confidence(), 0.001);
+        assertFalse(result.found());
     }
 
     @Test
