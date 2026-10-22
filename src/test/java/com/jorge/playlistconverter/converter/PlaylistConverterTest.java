@@ -1,5 +1,6 @@
 package com.jorge.playlistconverter.converter;
 
+import com.jorge.playlistconverter.enums.PlaylistVisibility;
 import com.jorge.playlistconverter.errors.spotify.SpotifyPlaylistReadException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeSearchException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeTrackInsertionException;
@@ -227,12 +228,11 @@ class PlaylistConverterTest {
         when(matcher.findBestMatch(secondSong, List.of()))
                 .thenReturn(missingMatch);
 
-        when(destination.createPlaylist("Minha playlist"))
+        when(destination.createPlaylist("Minha playlist",
+                PlaylistVisibility.PRIVATE))
                 .thenReturn("destination-playlist");
 
-        ConversionResult result = converter.convertPlaylist(
-                "source-playlist",
-                "Minha playlist");
+        ConversionResult result = executeNewPlaylistFlow();
 
         assertEquals("source-playlist", result.sourcePlaylistId());
         assertEquals("destination-playlist", result.destinationPlaylistId());
@@ -243,7 +243,7 @@ class PlaylistConverterTest {
 
         order.verify(destination).searchCandidates(firstSong);
         order.verify(destination).searchCandidates(secondSong);
-        order.verify(destination).createPlaylist("Minha playlist");
+        order.verify(destination).createPlaylist("Minha playlist", PlaylistVisibility.PRIVATE);
 
         order.verify(destination).addTracks(
                 "destination-playlist", List.of("video-A"));
@@ -252,11 +252,19 @@ class PlaylistConverterTest {
     }
 
     @Test
-    void shouldRejectInvalidDestinationNameBeforeAnalysis() {
+    void shouldRejectInvalidDestinationNameBeforeWriting() {
+        PlaylistPreview preview = new PlaylistPreview(
+                "source-playlist",
+                List.of(new MatchResult(
+                        firstSong,
+                        "video-A",
+                        "Song A",
+                        0.95)));
+
         for (String name : new String[]{null, "", "   "}) {
             assertThrows(
                     IllegalArgumentException.class,
-                    () -> converter.convertPlaylist("source-playlist", name));
+                    () -> converter.executeNewPlaylistPreview(preview, name));
         }
 
         verifyNoInteractions(source, destination, matcher);
@@ -275,9 +283,7 @@ class PlaylistConverterTest {
 
         YoutubeSearchException result = assertThrows(
                 YoutubeSearchException.class,
-                () -> converter.convertPlaylist(
-                        "source-playlist",
-                        "Minha playlist"));
+                this::executeNewPlaylistFlow);
 
         assertSame(original, result);
 
@@ -305,7 +311,8 @@ class PlaylistConverterTest {
         when(matcher.findBestMatch(firstSong, candidates))
                 .thenReturn(match);
 
-        when(destination.createPlaylist("Minha playlist"))
+        when(destination.createPlaylist("Minha playlist",
+                PlaylistVisibility.PRIVATE))
                 .thenReturn("destination-playlist");
 
         doThrow(original).when(destination).addTracks(
@@ -314,13 +321,12 @@ class PlaylistConverterTest {
 
         YoutubeTrackInsertionException result = assertThrows(
                 YoutubeTrackInsertionException.class,
-                () -> converter.convertPlaylist(
-                        "source-playlist",
-                        "Minha playlist"));
+                this::executeNewPlaylistFlow);
 
         assertSame(original, result);
 
-        verify(destination, times(1)).createPlaylist("Minha playlist");
+        verify(destination, times(1)).createPlaylist("Minha playlist",
+                PlaylistVisibility.PRIVATE);
 
         verify(destination, times(1)).addTracks(
                 "destination-playlist",
@@ -374,5 +380,15 @@ class PlaylistConverterTest {
         verify(matcher).findBestMatch(secondSong, List.of());
 
         verifyNoMoreInteractions(source, destination, matcher);
+    }
+
+    private ConversionResult executeNewPlaylistFlow() {
+        PlaylistPreview preview =
+                converter.previewNewPlaylist("source-playlist");
+
+        return converter.executeNewPlaylistPreview(
+                preview,
+                "Minha playlist"
+        );
     }
 }

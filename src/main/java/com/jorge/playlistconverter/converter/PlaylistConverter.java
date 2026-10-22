@@ -30,35 +30,6 @@ public class PlaylistConverter {
         return analyzer.analyze(sourcePlaylistId);
     }
 
-    public ConversionResult convertPlaylist(String sourcePlaylistId, String destinationPlaylistName){
-        if (destinationPlaylistName == null || destinationPlaylistName.isBlank()){
-            throw new IllegalArgumentException("O nome da playlist de destino deve ser informado.");
-        }
-
-        List<MatchResult> matches = analyzePlaylist(sourcePlaylistId);
-
-        List<String> destinationTrackIds = matches.stream()
-                .filter(MatchResult::found)
-                .map(MatchResult::matchedId)
-                .toList();
-
-        String destinationPlaylistId =
-                destination.createPlaylist(destinationPlaylistName);
-
-        destination.addTracks(destinationPlaylistId, destinationTrackIds);
-
-        return new ConversionResult(sourcePlaylistId, destinationPlaylistId, matches,
-                destinationTrackIds.size(), 0);
-    }
-
-    public ConversionResult convertIntoExistingPlaylist(String sourcePlaylistId,
-                                                        String destinationPlaylistId){
-        PlaylistPreview preview = previewExistingPlaylist(sourcePlaylistId,
-                destinationPlaylistId);
-
-        return executeExistingPlaylistPreview(preview);
-    }
-
     public PlaylistPreview previewNewPlaylist(String sourcePlaylistId) {
         List<MatchResult> matches = analyzePlaylist(sourcePlaylistId);
 

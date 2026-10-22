@@ -71,7 +71,7 @@ class ExistingPlaylistConversionTest {
 
         prepareAnalysis(firstMatch, secondMatch, thirdMatch);
 
-        ConversionResult result = converter.convertIntoExistingPlaylist(
+        ConversionResult result = executeExistingPlaylistFlow(
                 "source-playlist", "destination-playlist");
 
         assertEquals("source-playlist", result.sourcePlaylistId());
@@ -103,7 +103,7 @@ class ExistingPlaylistConversionTest {
                 new MatchResult(firstSong, "same-video", "Same song", 0.95),
                 new MatchResult(secondSong, "same-video", "Same song", 0.90));
 
-        ConversionResult result = converter.convertIntoExistingPlaylist(
+        ConversionResult result = executeExistingPlaylistFlow(
                 "source-playlist", "destination-playlist");
 
         assertEquals(1, result.insertedCount());
@@ -124,7 +124,7 @@ class ExistingPlaylistConversionTest {
         prepareAnalysis(
                 new MatchResult(firstSong, "video-A", "Song A", 0.95));
 
-        ConversionResult result = converter.convertIntoExistingPlaylist(
+        ConversionResult result = executeExistingPlaylistFlow(
                 "source-playlist", "destination-playlist");
 
         assertEquals(0, result.insertedCount());
@@ -147,7 +147,7 @@ class ExistingPlaylistConversionTest {
 
         prepareAnalysis(missingMatch, foundMatch);
 
-        ConversionResult result = converter.convertIntoExistingPlaylist(
+        ConversionResult result = executeExistingPlaylistFlow(
                 "source-playlist", "destination-playlist");
 
         assertEquals(List.of(missingMatch, foundMatch), result.matches());
@@ -165,12 +165,12 @@ class ExistingPlaylistConversionTest {
         for (String invalidId : new String[]{null, "", "   "}) {
             assertThrows(
                     IllegalArgumentException.class,
-                    () -> converter.convertIntoExistingPlaylist(
+                    () -> executeExistingPlaylistFlow(
                             invalidId, "destination-playlist"));
 
             assertThrows(
                     IllegalArgumentException.class,
-                    () -> converter.convertIntoExistingPlaylist(
+                    () -> executeExistingPlaylistFlow(
                             "source-playlist", invalidId));
         }
 
@@ -188,7 +188,7 @@ class ExistingPlaylistConversionTest {
 
         YoutubePlaylistReadException result = assertThrows(
                 YoutubePlaylistReadException.class,
-                () -> converter.convertIntoExistingPlaylist(
+                () -> executeExistingPlaylistFlow(
                         "source-playlist", "destination-playlist"));
 
         assertSame(original, result);
@@ -216,7 +216,7 @@ class ExistingPlaylistConversionTest {
 
         YoutubeTrackInsertionException result = assertThrows(
                 YoutubeTrackInsertionException.class,
-                () -> converter.convertIntoExistingPlaylist("source-playlist",
+                () -> executeExistingPlaylistFlow("source-playlist",
                         "destination-playlist"));
 
         assertSame(original, result);
@@ -248,7 +248,7 @@ class ExistingPlaylistConversionTest {
         when(matcher.findExistingMatch(firstSong, existingSongs))
                 .thenReturn(existingMatch);
 
-        ConversionResult result = converter.convertIntoExistingPlaylist(
+        ConversionResult result = executeExistingPlaylistFlow(
                 "source-playlist", "destination-playlist");
 
         assertEquals(0, result.insertedCount());
@@ -261,6 +261,18 @@ class ExistingPlaylistConversionTest {
         verify(destination, times(2))
                 .getPlaylistTracksAlreadyAdded("destination-playlist");
         verifyNoMoreInteractions(destination);
+    }
+
+    private ConversionResult executeExistingPlaylistFlow(
+            String sourcePlaylistId,
+            String destinationPlaylistId
+    ) {
+        PlaylistPreview preview = converter.previewExistingPlaylist(
+                sourcePlaylistId,
+                destinationPlaylistId
+        );
+
+        return converter.executeExistingPlaylistPreview(preview);
     }
 
     private void prepareAnalysis(MatchResult... matches) {
