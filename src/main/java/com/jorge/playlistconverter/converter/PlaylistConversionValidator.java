@@ -12,7 +12,7 @@ public class PlaylistConversionValidator {
         Objects.requireNonNull(preview, "A prévia deve ser informada.");
         Objects.requireNonNull(visibility, "A visibilidade da playlist deve ser informada.");
 
-        validadeSource(preview);
+        validateSource(preview);
 
         requireNonBlank(destinationName, "O nome da playlist de destino deve ser informado.");
 
@@ -30,13 +30,18 @@ public class PlaylistConversionValidator {
     public void validateForExistingPlaylist(PlaylistPreview preview){
         Objects.requireNonNull(preview, "A prévia deve ser informada.");
 
-        validadeSource(preview);
+        validatePlaylistIds(preview.sourcePlaylistId(),
+                preview.destinationPlaylistId());
+    }
 
-        requireNonBlank(preview.destinationPlaylistId(),
+    public void validatePlaylistIds(String sourcePlaylistId, String destinationPlaylistId){
+        requireNonBlank(sourcePlaylistId,
+                "O ID da playlist de origem deve ser informado.");
+        requireNonBlank(destinationPlaylistId,
                 "O ID da playlist de destino deve ser informado.");
     }
 
-    private void validadeSource(PlaylistPreview preview){
+    private void validateSource(PlaylistPreview preview){
         requireNonBlank(preview.sourcePlaylistId(),
                 "O ID da playlist de origem deve ser informado.");
     }

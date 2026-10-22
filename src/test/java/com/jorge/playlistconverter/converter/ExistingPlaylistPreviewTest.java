@@ -41,7 +41,7 @@ class ExistingPlaylistPreviewTest {
                 new ExistingPlaylistExecutor(destination, validator);
 
         converter = new PlaylistConverter(analyzer, destination,
-                newPlaylistExecutor, existingPlaylistExecutor);
+                newPlaylistExecutor, existingPlaylistExecutor, validator);
     }
 
     @Test

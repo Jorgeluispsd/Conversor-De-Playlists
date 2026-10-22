@@ -26,9 +26,10 @@ public class ConversionConfig {
     public PlaylistConverter spotifyToYoutubeConverter(PlaylistAnalyzer spotifyToYoutubeAnalyzer,
                                                        YoutubeMusicService youtubeMusicService,
                                                        NewPlaylistExecutor youtubeNewPlaylistExecutor,
-                                                       ExistingPlaylistExecutor youtubeExistingPlaylistExecutor) {
+                                                       ExistingPlaylistExecutor youtubeExistingPlaylistExecutor,
+                                                       PlaylistConversionValidator playlistConversionValidator) {
         return new PlaylistConverter(spotifyToYoutubeAnalyzer, youtubeMusicService,
-                youtubeNewPlaylistExecutor, youtubeExistingPlaylistExecutor);
+                youtubeNewPlaylistExecutor, youtubeExistingPlaylistExecutor, playlistConversionValidator);
     }
 
     @Bean

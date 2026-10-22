@@ -16,14 +16,17 @@ public class PlaylistConverter {
     private final MusicService destination;
     private final NewPlaylistExecutor newPlaylistExecutor;
     private final ExistingPlaylistExecutor existingPlaylistExecutor;
+    private final PlaylistConversionValidator validator;
 
     public PlaylistConverter(PlaylistAnalyzer analyzer, MusicService destination,
                              NewPlaylistExecutor newPlaylistExecutor,
-                             ExistingPlaylistExecutor existingPlaylistExecutor) {
+                             ExistingPlaylistExecutor existingPlaylistExecutor,
+                             PlaylistConversionValidator validator) {
         this.analyzer = Objects.requireNonNull(analyzer);
         this.destination = Objects.requireNonNull(destination);
         this.newPlaylistExecutor = Objects.requireNonNull(newPlaylistExecutor);
         this.existingPlaylistExecutor = Objects.requireNonNull(existingPlaylistExecutor);
+        this.validator = Objects.requireNonNull(validator);
     }
 
 
@@ -35,7 +38,7 @@ public class PlaylistConverter {
 
     public PlaylistPreview previewExistingPlaylist(String sourcePlaylistId,
                                                    String destinationPlaylistId){
-        validatePlaylistIds(sourcePlaylistId, destinationPlaylistId);
+        validator.validatePlaylistIds(sourcePlaylistId, destinationPlaylistId);
 
         List<Song> existingSongs =
                 destination.getPlaylistTracksAlreadyAdded(destinationPlaylistId);
@@ -48,18 +51,6 @@ public class PlaylistConverter {
 
         return new PlaylistPreview(sourcePlaylistId, destinationPlaylistId,
                 matches, existingIds);
-    }
-
-    private void validatePlaylistIds(String sourcePlaylistId, String destinationPlaylistId){
-        if (sourcePlaylistId == null || sourcePlaylistId.isBlank()){
-            throw new IllegalArgumentException(
-                    "O ID da playlist de origem deve ser informado.");
-        }
-
-        if (destinationPlaylistId == null || destinationPlaylistId.isBlank()){
-            throw new IllegalArgumentException(
-                    "O ID da playlist de destino deve ser informado.");
-        }
     }
 
     public ConversionResult executeExistingPlaylistPreview(PlaylistPreview preview){
