@@ -1,0 +1,49 @@
+package com.jorge.playlistconverter.converter;
+
+import com.jorge.playlistconverter.enums.PlaylistVisibility;
+
+import java.util.Objects;
+
+public class PlaylistConversionValidator {
+
+    public void validateForNewPlaylist(PlaylistPreview preview,
+                                       String destinationName,
+                                       PlaylistVisibility visibility) {
+        Objects.requireNonNull(preview, "A prévia deve ser informada.");
+        Objects.requireNonNull(visibility, "A visibilidade da playlist deve ser informada.");
+
+        validadeSource(preview);
+
+        requireNonBlank(destinationName, "O nome da playlist de destino deve ser informado.");
+
+        if (preview.destinationPlaylistId() != null
+                || !preview.existingDestinationIds().isEmpty()){
+            throw new IllegalArgumentException("A prévia deve ser destinada à criação de uma nova playlist.");
+        }
+
+        if (preview.newTrackCount() == 0){
+            throw new IllegalArgumentException(
+                    "A prévia não possui músicas encontradas para adicionar.");
+        }
+    }
+
+    public void validateForExistingPlaylist(PlaylistPreview preview){
+        Objects.requireNonNull(preview, "A prévia deve ser informada.");
+
+        validadeSource(preview);
+
+        requireNonBlank(preview.destinationPlaylistId(),
+                "O ID da playlist de destino deve ser informado.");
+    }
+
+    private void validadeSource(PlaylistPreview preview){
+        requireNonBlank(preview.sourcePlaylistId(),
+                "O ID da playlist de origem deve ser informado.");
+    }
+
+    private void requireNonBlank(String value, String message){
+        if (value == null || value.isBlank()){
+            throw new IllegalArgumentException(message);
+        }
+    }
+}

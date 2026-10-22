@@ -36,7 +36,17 @@ class PlaylistConverterTest {
 
         PlaylistAnalyzer analyzer = new PlaylistAnalyzer(source, destination, matcher);
 
-        converter = new PlaylistConverter(analyzer, destination);
+        PlaylistConversionValidator validator =
+                new PlaylistConversionValidator();
+
+        NewPlaylistExecutor newPlaylistExecutor =
+                new NewPlaylistExecutor(destination, validator);
+
+        ExistingPlaylistExecutor existingPlaylistExecutor =
+                new ExistingPlaylistExecutor(destination, validator);
+
+        converter = new PlaylistConverter(analyzer, destination,
+                newPlaylistExecutor, existingPlaylistExecutor);
     }
 
     @Test

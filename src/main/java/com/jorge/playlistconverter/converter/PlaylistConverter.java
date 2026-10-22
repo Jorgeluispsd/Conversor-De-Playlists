@@ -1,7 +1,6 @@
 package com.jorge.playlistconverter.converter;
 
 import com.jorge.playlistconverter.enums.PlaylistVisibility;
-import com.jorge.playlistconverter.errors.conversion.PlaylistPreviewChangedException;
 
 import com.jorge.playlistconverter.model.MatchResult;
 import com.jorge.playlistconverter.model.Song;
@@ -15,10 +14,16 @@ import java.util.stream.Collectors;
 public class PlaylistConverter {
     private final PlaylistAnalyzer analyzer;
     private final MusicService destination;
+    private final NewPlaylistExecutor newPlaylistExecutor;
+    private final ExistingPlaylistExecutor existingPlaylistExecutor;
 
-    public PlaylistConverter(PlaylistAnalyzer analyzer, MusicService destination) {
+    public PlaylistConverter(PlaylistAnalyzer analyzer, MusicService destination,
+                             NewPlaylistExecutor newPlaylistExecutor,
+                             ExistingPlaylistExecutor existingPlaylistExecutor) {
         this.analyzer = Objects.requireNonNull(analyzer);
         this.destination = Objects.requireNonNull(destination);
+        this.newPlaylistExecutor = Objects.requireNonNull(newPlaylistExecutor);
+        this.existingPlaylistExecutor = Objects.requireNonNull(existingPlaylistExecutor);
     }
 
     public List<MatchResult> analyzePlaylist(String sourcePlaylistId) {
@@ -90,32 +95,8 @@ public class PlaylistConverter {
     }
 
     public ConversionResult executeExistingPlaylistPreview(PlaylistPreview preview){
-        Objects.requireNonNull(preview, "A prévia deve ser informada.");
 
-        validatePlaylistIds(preview.sourcePlaylistId(), preview.destinationPlaylistId());
-
-        Set<String> currentDestinationIds = destination.getPlaylistTracksAlreadyAdded(
-                preview.destinationPlaylistId()).stream().map(Song::id).collect(Collectors.toSet());
-
-        if (!currentDestinationIds.containsAll(preview.existingDestinationIds())){
-            throw new PlaylistPreviewChangedException(
-                    "Itens da playlist de destino foram removidos "
-                            + "desde a análise. Gere uma nova prévia "
-                            + "antes de executar a conversão.");
-        }
-
-        List<String> idsToInsert = preview.newTrackIds().stream()
-                .filter(id -> !currentDestinationIds.contains(id))
-                .collect(Collectors.toList());
-
-        if (!idsToInsert.isEmpty()){
-            destination.addTracks(preview.destinationPlaylistId(), idsToInsert);
-        }
-
-        int skippedCount = (int) preview.foundCount() - idsToInsert.size();
-
-        return new ConversionResult(preview.sourcePlaylistId(), preview.destinationPlaylistId(),
-                preview.matches(), idsToInsert.size(), skippedCount);
+        return existingPlaylistExecutor.execute(preview);
     }
 
     public ConversionResult executeNewPlaylistPreview(PlaylistPreview preview,
@@ -127,55 +108,7 @@ public class PlaylistConverter {
     public ConversionResult executeNewPlaylistPreview(PlaylistPreview preview,
                                                       String destinationPlaylistName,
                                                       PlaylistVisibility visibility){
-        validateNewPlaylistPreview(preview, destinationPlaylistName, visibility);
 
-        List<String> idsToInsert = requireNewTrackIds(preview);
-
-        String destinationPlaylistId = destination.createPlaylist(
-                destinationPlaylistName.strip(), visibility);
-
-        destination.addTracks(destinationPlaylistId, idsToInsert);
-
-        int skippedCount = (int) preview.foundCount() - idsToInsert.size();
-
-        return new ConversionResult(preview.sourcePlaylistId(), destinationPlaylistId,
-                preview.matches(), idsToInsert.size(), skippedCount);
-    }
-
-
-    private void validateNewPlaylistPreview(PlaylistPreview preview, String destinationPlaylistName,
-                                            PlaylistVisibility visibility){
-
-        Objects.requireNonNull(preview, "A prévia deve ser informada.");
-        Objects.requireNonNull(
-                visibility,
-                "A visibilidade da playlist deve ser informada.");
-
-        requireNonBlank(preview.sourcePlaylistId(), "O ID da playlist de origem deve ser informado.");
-
-        requireNonBlank(destinationPlaylistName, "O nome da playlist de destino deve ser informado.");
-
-        if (preview.destinationPlaylistId() != null
-                || !preview.existingDestinationIds().isEmpty()){
-            throw new IllegalArgumentException(
-                    "A prévia deve ser destinada à criação de uma nova playlist.");
-        }
-    }
-
-    private void requireNonBlank(String value, String message){
-        if (value == null || value.isBlank()){
-            throw new IllegalArgumentException(message);
-        }
-    }
-
-    private List<String> requireNewTrackIds(PlaylistPreview preview){
-        List<String> ids = preview.newTrackIds();
-
-        if(ids.isEmpty()){
-            throw new IllegalArgumentException(
-                    "A prévia não possui músicas encontradas para adicionar.");
-        }
-
-        return ids;
+        return newPlaylistExecutor.execute(preview, destinationPlaylistName, visibility);
     }
 }
