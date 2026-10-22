@@ -26,12 +26,9 @@ public class PlaylistConverter {
         this.existingPlaylistExecutor = Objects.requireNonNull(existingPlaylistExecutor);
     }
 
-    public List<MatchResult> analyzePlaylist(String sourcePlaylistId) {
-        return analyzer.analyze(sourcePlaylistId);
-    }
 
     public PlaylistPreview previewNewPlaylist(String sourcePlaylistId) {
-        List<MatchResult> matches = analyzePlaylist(sourcePlaylistId);
+        List<MatchResult> matches = analyzer.analyze(sourcePlaylistId);
 
         return new PlaylistPreview(sourcePlaylistId, matches);
     }
