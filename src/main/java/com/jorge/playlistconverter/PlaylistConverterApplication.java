@@ -4,11 +4,15 @@ import com.jorge.playlistconverter.converter.ConversionResult;
 import com.jorge.playlistconverter.converter.PlaylistConverter;
 import com.jorge.playlistconverter.converter.PlaylistPreview;
 import com.jorge.playlistconverter.enums.PlaylistVisibility;
+import com.jorge.playlistconverter.model.Song;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import com.jorge.playlistconverter.input.SpotifyPlaylistParser;
+import com.jorge.playlistconverter.input.YoutubePlaylistParser;
 
+import java.util.List;
 import java.util.Scanner;
 
 
@@ -483,11 +487,16 @@ public class PlaylistConverterApplication {
 /*
     @Bean
     CommandLineRunner existingPlaylistPreviewRunner(
-            PlaylistConverter converter
+            PlaylistConverter converter,
+            SpotifyPlaylistParser spotifyPlaylistParser,
+            YoutubePlaylistParser youtubePlaylistParser
     ) {
         return args -> {
-            String sourcePlaylistId = "2XnKAdcompOGmEpQnngIyx";
-            String destinationPlaylistId = "PLVMPlT659QZY";
+            String sourcePlaylistInput = "https://open.spotify.com/playlist/2XnKAdcompOGmEpQnngIyx";
+            String destinationPlaylistInput = "https://www.youtube.com/playlist?list=PLVMPlT659QZY";
+
+            String sourcePlaylistId = spotifyPlaylistParser.parse(sourcePlaylistInput);
+            String destinationPlaylistId = youtubePlaylistParser.parse(destinationPlaylistInput);
 
             PlaylistPreview preview =
                     converter.previewExistingPlaylist(
@@ -569,14 +578,19 @@ public class PlaylistConverterApplication {
                             + result.destinationPlaylistId());
         };
     }
+
  */
 
+
     @Bean
-    CommandLineRunner newPlaylistPreviewRunner(PlaylistConverter converter) {
+    CommandLineRunner newPlaylistPreviewRunner(PlaylistConverter converter,
+                                               SpotifyPlaylistParser spotifyPlaylistParser) {
         return args -> {
-            String sourcePlaylistId = "2S6FRrlOthv0w7ITaaB4mp";
-            String destinationName = "Playlist Converter - Teste completo";
-            PlaylistVisibility visibility = PlaylistVisibility.PRIVATE;
+            String sourcePlaylistInput = "https://open.spotify.com/playlist/2XnKAdcompOGmEpQnngIyx";
+
+            String sourcePlaylistId = spotifyPlaylistParser.parse(sourcePlaylistInput);
+            String destinationName = "Playlist Converter - pedro";
+            PlaylistVisibility visibility = PlaylistVisibility.PUBLIC;
 
             PlaylistPreview preview =
                     converter.previewNewPlaylist(sourcePlaylistId);
