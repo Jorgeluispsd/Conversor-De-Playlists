@@ -3,6 +3,7 @@ package com.jorge.playlistconverter.state.database;
 import com.jorge.playlistconverter.enums.SyncRunStatus;
 import com.jorge.playlistconverter.errors.persistence.SyncStateStorageException;
 import com.jorge.playlistconverter.model.Song;
+import com.jorge.playlistconverter.model.SyncJob;
 import com.jorge.playlistconverter.state.SyncStateStore;
 import com.jorge.playlistconverter.state.sql.SqlResourceLoader;
 
@@ -21,6 +22,7 @@ public class H2SyncStateStore implements SyncStateStore {
     private static final String FIND_SYNC_JOB_PATH = "sql/queries/find_sync_job.sql";
     private static final String START_SYNC_RUN_PATH = "sql/queries/start_sync_run.sql";
     private static final String FINISH_SYNC_RUN_PATH = "sql/queries/finish_sync_run.sql";
+    private static final String FIND_SYNC_JOBS_BY_SOURCE_PATH = "sql/queries/find_sync_jobs_by_source.sql";
 
     private final String dbPath;
 
@@ -31,6 +33,7 @@ public class H2SyncStateStore implements SyncStateStore {
     private final String findSyncJobSql;
     private final String startSyncRunSql;
     private final String finishSyncRunSql;
+    private final String findSyncJobsBySourceSql;
 
     public H2SyncStateStore(SqlResourceLoader sqlResourceLoader, H2DatabaseInitializer databaseInitializer){
         this.dbPath = databaseInitializer.initialize();
@@ -42,6 +45,7 @@ public class H2SyncStateStore implements SyncStateStore {
         this.findSyncJobSql = sqlResourceLoader.read(FIND_SYNC_JOB_PATH);
         this.startSyncRunSql = sqlResourceLoader.read(START_SYNC_RUN_PATH);
         this.finishSyncRunSql = sqlResourceLoader.read(FINISH_SYNC_RUN_PATH);
+        this.findSyncJobsBySourceSql = sqlResourceLoader.read(FIND_SYNC_JOBS_BY_SOURCE_PATH);
     }
 
     private Connection getConnection() throws SQLException {
@@ -224,6 +228,34 @@ public class H2SyncStateStore implements SyncStateStore {
 
         }catch (SQLException e){
             throw new SyncStateStorageException("Erro ao finalizar execução de sincronização: ", e);
+        }
+    }
+
+    @Override
+    public List<SyncJob> findSyncJobsBySource(String sourcePlaylistId, String direction){
+
+        List<SyncJob> jobs = new ArrayList<>();
+
+        try (Connection connection = getConnection();
+                PreparedStatement statement = connection.prepareStatement(findSyncJobsBySourceSql)){
+            statement.setString(1, sourcePlaylistId);
+            statement.setString(2, direction);
+
+            try (ResultSet result = statement.executeQuery()){
+                while (result.next()){
+                    jobs.add(new SyncJob(
+                            result.getLong("id"),
+                            result.getString("source_playlist_id"),
+                            result.getString("destination_playlist_id"),
+                            result.getString("direction")));
+                }
+            }
+
+            return List.copyOf(jobs);
+
+        }catch (SQLException e){
+            throw new SyncStateStorageException(
+                    "Erro ao consultar os destinos vinculados à playlist.", e);
         }
     }
 }

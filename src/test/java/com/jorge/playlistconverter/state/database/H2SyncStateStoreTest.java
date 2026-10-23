@@ -1,6 +1,7 @@
 package com.jorge.playlistconverter.state.database;
 
 import com.jorge.playlistconverter.errors.persistence.SyncStateStorageException;
+import com.jorge.playlistconverter.model.SyncJob;
 import com.jorge.playlistconverter.state.sql.SqlResourceLoader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 import java.util.OptionalLong;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -111,5 +113,47 @@ public class H2SyncStateStoreTest {
 
         verify(observedStore, times(1))
                 .createSyncJob(null, DESTINATION, DIRECTION);
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenSourceHasNoSavedDestination() {
+        List<SyncJob> result =
+                store.findSyncJobsBySource(SOURCE, DIRECTION);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void shouldListOnlyDestinationsForRequestedSourceAndDirection() {
+        long firstId =
+                store.createSyncJob(SOURCE, "destination-A", DIRECTION);
+
+        long secondId =
+                store.createSyncJob(SOURCE, "destination-B", DIRECTION);
+
+        store.createSyncJob(
+                "another-source",
+                "destination-C",
+                DIRECTION
+        );
+
+        store.createSyncJob(
+                SOURCE,
+                "destination-D",
+                "YOUTUBE_TO_SPOTIFY"
+        );
+
+        List<SyncJob> result =
+                store.findSyncJobsBySource(SOURCE, DIRECTION);
+
+        assertEquals(
+                List.of(
+                        new SyncJob(
+                                firstId, SOURCE, "destination-A", DIRECTION),
+                        new SyncJob(
+                                secondId, SOURCE, "destination-B", DIRECTION)
+                ),
+                result
+        );
     }
 }

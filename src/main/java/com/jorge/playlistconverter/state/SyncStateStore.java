@@ -2,6 +2,8 @@ package com.jorge.playlistconverter.state;
 
 import com.jorge.playlistconverter.enums.SyncRunStatus;
 import com.jorge.playlistconverter.model.Song;
+import com.jorge.playlistconverter.model.SyncJob;
+
 import java.util.OptionalLong;
 import java.util.List;
 
@@ -27,4 +29,6 @@ public interface SyncStateStore {
     long startSyncRun(long syncJobId);
 
     void finishSyncRun(long syncRunId, SyncRunStatus status);
+
+    List<SyncJob> findSyncJobsBySource(String sourcePlaylistId, String direction);
 }
