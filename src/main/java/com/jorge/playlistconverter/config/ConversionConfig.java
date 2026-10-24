@@ -1,8 +1,10 @@
 package com.jorge.playlistconverter.config;
 
 import com.jorge.playlistconverter.converter.*;
+import com.jorge.playlistconverter.enums.ConversionDirection;
 import com.jorge.playlistconverter.matcher.TrackMatcher;
 import com.jorge.playlistconverter.spotify.SpotifyMusicService;
+import com.jorge.playlistconverter.state.SyncStateStore;
 import com.jorge.playlistconverter.youtube.YoutubeMusicService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,13 +41,26 @@ public class ConversionConfig {
 
     @Bean
     public NewPlaylistExecutor youtubeNewPlaylistExecutor(
-            YoutubeMusicService youtubeMusicService, PlaylistConversionValidator playlistConversionValidator){
-        return new NewPlaylistExecutor(youtubeMusicService, playlistConversionValidator);
+            YoutubeMusicService youtubeMusicService, PlaylistConversionValidator playlistConversionValidator,
+            PlaylistDestinationRegistry spotifyToYoutubeDestinationRegistry){
+        return new NewPlaylistExecutor(youtubeMusicService, playlistConversionValidator,
+                spotifyToYoutubeDestinationRegistry);
     }
 
     @Bean
     public ExistingPlaylistExecutor youtubeExistingPlaylistExecutor(
-            YoutubeMusicService youtubeMusicService, PlaylistConversionValidator playlistConversionValidator){
-        return new ExistingPlaylistExecutor(youtubeMusicService, playlistConversionValidator);
+            YoutubeMusicService youtubeMusicService, PlaylistConversionValidator playlistConversionValidator,
+            PlaylistDestinationRegistry spotifyToYoutubeDestinationRegistry){
+        return new ExistingPlaylistExecutor(youtubeMusicService, playlistConversionValidator,
+                spotifyToYoutubeDestinationRegistry);
     }
+
+    @Bean
+    public PlaylistDestinationRegistry spotifyToYoutubeDestinationRegistry(SyncStateStore store,
+                                                                           PlaylistConversionValidator playlistConversionValidator){
+        return new PlaylistDestinationRegistry(store, ConversionDirection.SPOTIFY_TO_YOUTUBE,
+                playlistConversionValidator);
+    }
+
+
 }

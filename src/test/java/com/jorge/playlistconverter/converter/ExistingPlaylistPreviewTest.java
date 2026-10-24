@@ -34,11 +34,15 @@ class ExistingPlaylistPreviewTest {
         PlaylistConversionValidator validator =
                 new PlaylistConversionValidator();
 
+        PlaylistDestinationRegistry destinationRegistry =
+                mock(PlaylistDestinationRegistry.class);
+
+
         NewPlaylistExecutor newPlaylistExecutor =
-                new NewPlaylistExecutor(destination, validator);
+                new NewPlaylistExecutor(destination, validator, destinationRegistry);
 
         ExistingPlaylistExecutor existingPlaylistExecutor =
-                new ExistingPlaylistExecutor(destination, validator);
+                new ExistingPlaylistExecutor(destination, validator, destinationRegistry);
 
         converter = new PlaylistConverter(analyzer, destination,
                 newPlaylistExecutor, existingPlaylistExecutor, validator);

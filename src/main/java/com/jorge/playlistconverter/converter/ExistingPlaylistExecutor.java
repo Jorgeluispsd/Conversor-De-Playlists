@@ -13,10 +13,13 @@ public class ExistingPlaylistExecutor {
 
     private final MusicService destination;
     private final PlaylistConversionValidator validator;
+    private final PlaylistDestinationRegistry destinationRegistry;
 
-    public ExistingPlaylistExecutor(MusicService destination, PlaylistConversionValidator validator) {
+    public ExistingPlaylistExecutor(MusicService destination, PlaylistConversionValidator validator,
+                                    PlaylistDestinationRegistry destinationRegistry) {
         this.destination = Objects.requireNonNull(destination);
         this.validator = Objects.requireNonNull(validator);
+        this.destinationRegistry= Objects.requireNonNull(destinationRegistry);
     }
 
     public ConversionResult execute(PlaylistPreview preview){
@@ -26,6 +29,8 @@ public class ExistingPlaylistExecutor {
                 preview.destinationPlaylistId()).stream().map(Song::id).collect(Collectors.toSet());
 
         validateDestinationSnapshot(preview, currentDestinationIds);
+
+        destinationRegistry.registerDestination(preview.sourcePlaylistId(), preview.destinationPlaylistId());
 
         List<String> idsToInsert = preview.newTrackIds().stream()
                 .filter(id -> !currentDestinationIds.contains(id)).toList();

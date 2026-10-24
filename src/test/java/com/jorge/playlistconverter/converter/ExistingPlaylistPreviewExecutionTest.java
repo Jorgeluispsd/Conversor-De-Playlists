@@ -1,6 +1,7 @@
 package com.jorge.playlistconverter.converter;
 
 import com.jorge.playlistconverter.errors.conversion.PlaylistPreviewChangedException;
+import com.jorge.playlistconverter.errors.persistence.SyncStateStorageException;
 import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistReadException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeTrackInsertionException;
 import com.jorge.playlistconverter.matcher.TrackMatcher;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
 
@@ -23,6 +25,7 @@ class ExistingPlaylistPreviewExecutionTest {
     private MusicService destination;
     private TrackMatcher matcher;
     private PlaylistConverter converter;
+    private PlaylistDestinationRegistry destinationRegistry;
 
     @BeforeEach
     void setUp() {
@@ -35,11 +38,13 @@ class ExistingPlaylistPreviewExecutionTest {
         PlaylistConversionValidator validator =
                 new PlaylistConversionValidator();
 
+        destinationRegistry = mock(PlaylistDestinationRegistry.class);
+
         NewPlaylistExecutor newPlaylistExecutor =
-                new NewPlaylistExecutor(destination, validator);
+                new NewPlaylistExecutor(destination, validator, destinationRegistry);
 
         ExistingPlaylistExecutor existingPlaylistExecutor =
-                new ExistingPlaylistExecutor(destination, validator);
+                new ExistingPlaylistExecutor(destination, validator, destinationRegistry);
 
         converter = new PlaylistConverter(analyzer, destination,
                 newPlaylistExecutor, existingPlaylistExecutor, validator);
@@ -63,16 +68,19 @@ class ExistingPlaylistPreviewExecutionTest {
         assertEquals(2, result.insertedCount());
         assertEquals(1, result.skippedCount());
 
-        var order = inOrder(destination);
+        var order = inOrder(destination, destinationRegistry);
 
         order.verify(destination)
                 .getPlaylistTracksAlreadyAdded("destination-playlist");
+
+        order.verify(destinationRegistry).registerDestination("source-playlist",
+                "destination-playlist");
 
         order.verify(destination).addTracks(
                 "destination-playlist",
                 List.of("video-B", "video-C"));
 
-        verifyNoMoreInteractions(destination);
+        verifyNoMoreInteractions(destination, destinationRegistry);
         verifyNoInteractions(source, matcher);
     }
 
@@ -117,6 +125,7 @@ class ExistingPlaylistPreviewExecutionTest {
                 .getPlaylistTracksAlreadyAdded("destination-playlist");
 
         verifyNoMoreInteractions(destination);
+        verifyNoInteractions(destinationRegistry);
         verifyNoInteractions(source, matcher);
     }
 
@@ -139,7 +148,10 @@ class ExistingPlaylistPreviewExecutionTest {
         verify(destination)
                 .getPlaylistTracksAlreadyAdded("destination-playlist");
 
-        verifyNoMoreInteractions(destination);
+        verify(destinationRegistry).registerDestination("source-playlist",
+                "destination-playlist");
+
+        verifyNoMoreInteractions(destination, destinationRegistry);
         verifyNoInteractions(source, matcher);
     }
 
@@ -165,6 +177,7 @@ class ExistingPlaylistPreviewExecutionTest {
                 .getPlaylistTracksAlreadyAdded("destination-playlist");
 
         verifyNoMoreInteractions(destination);
+        verifyNoInteractions(destinationRegistry);
         verifyNoInteractions(source, matcher);
     }
 
@@ -192,11 +205,14 @@ class ExistingPlaylistPreviewExecutionTest {
         verify(destination)
                 .getPlaylistTracksAlreadyAdded("destination-playlist");
 
+        verify(destinationRegistry).registerDestination("source-playlist",
+                "destination-playlist");
+
         verify(destination, times(1)).addTracks(
                 "destination-playlist",
                 List.of("video-B", "video-C"));
 
-        verifyNoMoreInteractions(destination);
+        verifyNoMoreInteractions(destination, destinationRegistry);
         verifyNoInteractions(source, matcher);
     }
 
@@ -207,6 +223,7 @@ class ExistingPlaylistPreviewExecutionTest {
                 () -> converter.executeExistingPlaylistPreview(null));
 
         verifyNoInteractions(source, destination, matcher);
+        verifyNoInteractions(destinationRegistry);
     }
 
     @Test
@@ -219,6 +236,38 @@ class ExistingPlaylistPreviewExecutionTest {
                 () -> converter.executeExistingPlaylistPreview(preview));
 
         verifyNoInteractions(source, destination, matcher);
+        verifyNoInteractions(destinationRegistry);
+    }
+
+    @Test
+    void shouldStopBeforeInsertionWhenDestinationRegistrationFails() {
+        when(destination.getPlaylistTracksAlreadyAdded("destination-playlist"
+        )).thenReturn(List.of(video("video-A")));
+
+        SyncStateStorageException original =
+                new SyncStateStorageException(
+                        "Falha simulada no registro.",
+                        new SQLException("Falha simulada"));
+
+        when(destinationRegistry.registerDestination("source-playlist",
+                "destination-playlist")).thenThrow(original);
+
+        SyncStateStorageException result = assertThrows(
+                SyncStateStorageException.class,
+                () -> converter.executeExistingPlaylistPreview(preview()));
+
+        assertSame(original, result);
+
+        var order = inOrder(destination, destinationRegistry);
+
+        order.verify(destination)
+                .getPlaylistTracksAlreadyAdded("destination-playlist");
+
+        order.verify(destinationRegistry).registerDestination("source-playlist",
+                "destination-playlist");
+
+        verifyNoMoreInteractions(destination, destinationRegistry);
+        verifyNoInteractions(source, matcher);
     }
 
     private PlaylistPreview preview() {

@@ -1,6 +1,7 @@
 package com.jorge.playlistconverter.converter;
 
 import com.jorge.playlistconverter.enums.PlaylistVisibility;
+import com.jorge.playlistconverter.errors.persistence.SyncStateStorageException;
 import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistCreationException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeTrackInsertionException;
 import com.jorge.playlistconverter.matcher.TrackMatcher;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
 
@@ -24,12 +26,14 @@ class NewPlaylistPreviewExecutionTest {
     private MusicService destination;
     private TrackMatcher matcher;
     private PlaylistConverter converter;
+    private PlaylistDestinationRegistry destinationRegistry;
 
     @BeforeEach
     void setUp() {
         source = mock(MusicService.class);
         destination = mock(MusicService.class);
         matcher = mock(TrackMatcher.class);
+        destinationRegistry = mock(PlaylistDestinationRegistry.class);
 
         PlaylistAnalyzer analyzer = new PlaylistAnalyzer(source, destination, matcher);
 
@@ -37,10 +41,10 @@ class NewPlaylistPreviewExecutionTest {
                 new PlaylistConversionValidator();
 
         NewPlaylistExecutor newPlaylistExecutor =
-                new NewPlaylistExecutor(destination, validator);
+                new NewPlaylistExecutor(destination, validator, destinationRegistry);
 
         ExistingPlaylistExecutor existingPlaylistExecutor =
-                new ExistingPlaylistExecutor(destination, validator);
+                new ExistingPlaylistExecutor(destination, validator, destinationRegistry);
 
         converter = new PlaylistConverter(analyzer, destination,
                 newPlaylistExecutor, existingPlaylistExecutor, validator);
@@ -67,13 +71,17 @@ class NewPlaylistPreviewExecutionTest {
         assertEquals(2, result.insertedCount());
         assertEquals(0, result.skippedCount());
 
-        var order = inOrder(destination);
+        var order = inOrder(destination, destinationRegistry);
 
         order.verify(destination).createPlaylist("Meu Rock", visibility);
+
+        order.verify(destinationRegistry).registerDestination("source-playlist",
+                "new-playlist");
+
         order.verify(destination).addTracks(
                 "new-playlist", List.of("video-A", "video-B"));
 
-        verifyNoMoreInteractions(destination);
+        verifyNoMoreInteractions(destination, destinationRegistry);
         verifyNoInteractions(source, matcher);
     }
 
@@ -255,10 +263,50 @@ class NewPlaylistPreviewExecutionTest {
 
         verify(destination, times(1)).createPlaylist(
                 "Meu Rock", PlaylistVisibility.PRIVATE);
+
+        verify(destinationRegistry).registerDestination("source-playlist",
+                "new-playlist");
+
         verify(destination, times(1)).addTracks(
                 "new-playlist", List.of("video-A"));
 
         verifyNoMoreInteractions(destination);
+        verifyNoInteractions(source, matcher);
+    }
+
+    @Test
+    void shouldStopBeforeInsertionWhenDestinationRegistrationFails() {
+        when(destination.createPlaylist("Meu Rock",
+                PlaylistVisibility.PRIVATE)).thenReturn("new-playlist");
+
+        SyncStateStorageException original =
+                new SyncStateStorageException(
+                        "Falha simulada no registro.",
+                        new SQLException("Falha simulada"));
+
+        when(destinationRegistry.registerDestination(
+                "source-playlist",
+                "new-playlist")).thenThrow(original);
+
+        SyncStateStorageException result = assertThrows(
+                SyncStateStorageException.class,
+                () -> converter.executeNewPlaylistPreview(
+                        preview(match("source-A", "video-A")),
+                        "Meu Rock"));
+
+        assertSame(original, result.getCause());
+        assertTrue(result.getMessage().contains("new-playlist"));
+
+        var order = inOrder(destination, destinationRegistry);
+
+        order.verify(destination).createPlaylist("Meu Rock",
+                PlaylistVisibility.PRIVATE);
+
+        order.verify(destinationRegistry).registerDestination(
+                "source-playlist",
+                "new-playlist");
+
+        verifyNoMoreInteractions(destination, destinationRegistry);
         verifyNoInteractions(source, matcher);
     }
 

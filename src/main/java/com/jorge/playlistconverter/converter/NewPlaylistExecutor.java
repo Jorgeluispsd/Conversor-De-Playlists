@@ -1,6 +1,7 @@
 package com.jorge.playlistconverter.converter;
 
 import com.jorge.playlistconverter.enums.PlaylistVisibility;
+import com.jorge.playlistconverter.errors.persistence.SyncStateStorageException;
 import com.jorge.playlistconverter.service.MusicService;
 
 import java.util.List;
@@ -10,10 +11,13 @@ public class NewPlaylistExecutor {
 
     private final MusicService destination;
     private final PlaylistConversionValidator validator;
+    private final PlaylistDestinationRegistry destinationRegistry;
 
-    public NewPlaylistExecutor(MusicService destination, PlaylistConversionValidator validator) {
+    public NewPlaylistExecutor(MusicService destination, PlaylistConversionValidator validator,
+                               PlaylistDestinationRegistry destinationRegistry) {
         this.destination = Objects.requireNonNull(destination);
         this.validator = Objects.requireNonNull(validator);
+        this.destinationRegistry = Objects.requireNonNull(destinationRegistry);
     }
 
     public ConversionResult execute(PlaylistPreview preview, String destinationName,
@@ -25,11 +29,26 @@ public class NewPlaylistExecutor {
         String destinationPlaylistId = destination.createPlaylist(destinationName.strip(),
                 visibility);
 
+        registerCreatedDestination(preview.sourcePlaylistId(), destinationPlaylistId);
+
         destination.addTracks(destinationPlaylistId, idsToInsert);
 
         int skippedCount = (int) preview.foundCount() - idsToInsert.size();
 
         return new ConversionResult(preview.sourcePlaylistId(), destinationPlaylistId,
                 preview.matches(), idsToInsert.size(), skippedCount);
+    }
+
+    private void registerCreatedDestination(String sourcePlaylistId, String destinationPlaylistId){
+        try {
+            destinationRegistry.registerDestination(sourcePlaylistId, destinationPlaylistId);
+
+        }catch (SyncStateStorageException e){
+            throw new SyncStateStorageException("A playlist foi criada no YouTube com o ID "
+                    + destinationPlaylistId
+                    + ", mas não foi possível salvar o vínculo local. "
+                    + "Nenhum vídeo foi inserido nesta execução. "
+                    + "Use esse destino ao tentar novamente.", e);
+        }
     }
 }
