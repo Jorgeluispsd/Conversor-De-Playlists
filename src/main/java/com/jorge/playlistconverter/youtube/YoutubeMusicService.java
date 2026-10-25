@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Leitura de playlists e busca de candidatos no YouTube usando chave de API.
@@ -211,7 +212,14 @@ public class YoutubeMusicService implements MusicService {
 
     @Override
     public void addTracks(String playlistId, List<String> trackIds) {
+        addTracks(playlistId, trackIds, ignored -> {});
+    }
+
+    @Override
+    public void addTracks(String playlistId, List<String> trackIds, Consumer<String> onInserted) {
         validateTrackInsertion(playlistId, trackIds);
+
+        Objects.requireNonNull(onInserted, "A ação após a inserção deve ser informada.");
 
         if (trackIds.isEmpty()){
             return;
@@ -227,6 +235,7 @@ public class YoutubeMusicService implements MusicService {
                         trackId, confirmedInsertions);
 
                 confirmedInsertions++;
+                onInserted.accept(trackId);
             }
 
         }catch (GoogleJsonResponseException e){

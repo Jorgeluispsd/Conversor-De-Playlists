@@ -15,13 +15,16 @@ public class ExistingPlaylistExecutor {
     private final PlaylistConversionValidator validator;
     private final PlaylistDestinationRegistry destinationRegistry;
     private final SyncRunTracker runTracker;
+    private final TrackSyncRecorder trackSyncRecorder;
 
     public ExistingPlaylistExecutor(MusicService destination, PlaylistConversionValidator validator,
-                                    PlaylistDestinationRegistry destinationRegistry, SyncRunTracker runTracker) {
+                                    PlaylistDestinationRegistry destinationRegistry, SyncRunTracker runTracker,
+                                    TrackSyncRecorder trackSyncRecorder) {
         this.destination = Objects.requireNonNull(destination);
         this.validator = Objects.requireNonNull(validator);
         this.destinationRegistry= Objects.requireNonNull(destinationRegistry);
         this.runTracker = Objects.requireNonNull(runTracker);
+        this.trackSyncRecorder = Objects.requireNonNull(trackSyncRecorder);
     }
 
     public ConversionResult execute(PlaylistPreview preview){
@@ -38,12 +41,13 @@ public class ExistingPlaylistExecutor {
         List<String> idsToInsert = preview.newTrackIds().stream()
                 .filter(id -> !currentDestinationIds.contains(id)).toList();
 
-        return runTracker.execute(syncJobId, () -> insertTracks(preview, idsToInsert));
+        return runTracker.execute(syncJobId, () -> insertTracks(preview, idsToInsert, syncJobId));
     }
 
-    private ConversionResult insertTracks(PlaylistPreview preview, List<String> idsToInsert){
+    private ConversionResult insertTracks(PlaylistPreview preview, List<String> idsToInsert, long syncJobId){
         if (!idsToInsert.isEmpty()){
-            destination.addTracks(preview.destinationPlaylistId(), idsToInsert);
+            destination.addTracks(preview.destinationPlaylistId(), idsToInsert,
+                    trackSyncRecorder.insertedListener(syncJobId, preview));
         }
 
         int skippedCount = (int) preview.foundCount() - idsToInsert.size();

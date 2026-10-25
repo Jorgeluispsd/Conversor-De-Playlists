@@ -13,14 +13,16 @@ public class NewPlaylistExecutor {
     private final PlaylistConversionValidator validator;
     private final PlaylistDestinationRegistry destinationRegistry;
     private final SyncRunTracker runTracker;
+    private final TrackSyncRecorder trackSyncRecorder;
 
     public NewPlaylistExecutor(MusicService destination, PlaylistConversionValidator validator,
                                PlaylistDestinationRegistry destinationRegistry,
-                               SyncRunTracker runTracker) {
+                               SyncRunTracker runTracker, TrackSyncRecorder trackSyncRecorder) {
         this.destination = Objects.requireNonNull(destination);
         this.validator = Objects.requireNonNull(validator);
         this.destinationRegistry = Objects.requireNonNull(destinationRegistry);
         this.runTracker = Objects.requireNonNull(runTracker);
+        this.trackSyncRecorder = Objects.requireNonNull(trackSyncRecorder);
     }
 
     public ConversionResult execute(PlaylistPreview preview, String destinationName,
@@ -34,12 +36,13 @@ public class NewPlaylistExecutor {
 
         long syncJobId = registerCreatedDestination(preview.sourcePlaylistId(), destinationPlaylistId);
 
-        return runTracker.execute(syncJobId, () -> insertTracks(preview, destinationPlaylistId, idsToInsert));
+        return runTracker.execute(syncJobId, () -> insertTracks(preview, destinationPlaylistId, idsToInsert, syncJobId));
     }
 
     private ConversionResult insertTracks(PlaylistPreview preview, String destinationPlaylistId,
-                                          List<String> idsToInsert){
-        destination.addTracks(destinationPlaylistId, idsToInsert);
+                                          List<String> idsToInsert, long syncJobId){
+        destination.addTracks(destinationPlaylistId, idsToInsert,
+                trackSyncRecorder.insertedListener(syncJobId, preview));
 
         int skippedCount = (int) preview.foundCount() - idsToInsert.size();
 

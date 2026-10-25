@@ -34,6 +34,7 @@ class ExistingPlaylistPreviewTest {
 
         SyncStateStore store = mock(SyncStateStore.class);
         SyncRunTracker runTracker = new SyncRunTracker(store);
+        TrackSyncRecorder trackSyncRecorder = new TrackSyncRecorder(store);
 
         PlaylistConversionValidator validator =
                 new PlaylistConversionValidator();
@@ -43,10 +44,12 @@ class ExistingPlaylistPreviewTest {
 
 
         NewPlaylistExecutor newPlaylistExecutor =
-                new NewPlaylistExecutor(destination, validator, destinationRegistry, runTracker);
+                new NewPlaylistExecutor(destination, validator, destinationRegistry,
+                        runTracker, trackSyncRecorder);
 
         ExistingPlaylistExecutor existingPlaylistExecutor =
-                new ExistingPlaylistExecutor(destination, validator, destinationRegistry, runTracker);
+                new ExistingPlaylistExecutor(destination, validator, destinationRegistry,
+                        runTracker, trackSyncRecorder);
 
         converter = new PlaylistConverter(analyzer, destination,
                 newPlaylistExecutor, existingPlaylistExecutor, validator);
@@ -93,7 +96,7 @@ class ExistingPlaylistPreviewTest {
                 result.matches());
 
         verify(destination, never()).createPlaylist(anyString());
-        verify(destination, never()).addTracks(anyString(), anyList());
+        verify(destination, never()).addTracks(anyString(), anyList(), any());
     }
 
     @Test
@@ -116,7 +119,7 @@ class ExistingPlaylistPreviewTest {
         assertTrue(result.newTrackIds().isEmpty());
 
         verify(destination, never()).createPlaylist(anyString());
-        verify(destination, never()).addTracks(anyString(), anyList());
+        verify(destination, never()).addTracks(anyString(), anyList(), any());
     }
 
     @Test

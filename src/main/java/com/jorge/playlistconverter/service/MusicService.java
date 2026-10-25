@@ -2,6 +2,7 @@ package com.jorge.playlistconverter.service;
 
 import com.jorge.playlistconverter.enums.PlaylistVisibility;
 import com.jorge.playlistconverter.model.Song;
+import java.util.function.Consumer;
 
 import java.util.List;
 
@@ -27,6 +28,11 @@ public interface MusicService {
     // Fase 6: inserir os IDs selecionados na ordem recebida, respeitando o endpoint de cada plataforma.
     void addTracks(String playlistId, List<String> trackIds);
 
+    void addTracks(String playlistId, List<String> trackIds, Consumer<String> onInserted);
+
     // TODO (Fase 6): consultar o destino para checar itens presentes; complementar o histórico, sem confundir os dois conceitos.
     List<Song> getPlaylistTracksAlreadyAdded(String playlistId);
+
+
+
 }

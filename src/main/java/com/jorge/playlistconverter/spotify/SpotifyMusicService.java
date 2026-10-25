@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Leitura de playlists Spotify com Authorization Code + PKCE, paginação de 50 itens
@@ -190,6 +191,11 @@ public class SpotifyMusicService implements MusicService {
     public void addTracks(String playlistId, List<String> trackIds) {
         // TODO (Fase 6): converter IDs para URIs Spotify e inserir em lotes na ordem recebida, sem retry cego de escrita.
         throw new UnsupportedOperationException("TODO: Fase 6");
+    }
+
+    @Override
+    public void addTracks(String playlistId, List<String> trackIds, Consumer<String> onInserted) {
+        throw new UnsupportedOperationException("A inserção de músicas no Spotify ainda não foi implementada.");
     }
 
     @Override

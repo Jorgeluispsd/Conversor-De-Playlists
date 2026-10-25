@@ -42,17 +42,19 @@ public class ConversionConfig {
     @Bean
     public NewPlaylistExecutor youtubeNewPlaylistExecutor(
             YoutubeMusicService youtubeMusicService, PlaylistConversionValidator playlistConversionValidator,
-            PlaylistDestinationRegistry spotifyToYoutubeDestinationRegistry, SyncRunTracker syncRunTracker){
+            PlaylistDestinationRegistry spotifyToYoutubeDestinationRegistry, SyncRunTracker syncRunTracker,
+            TrackSyncRecorder trackSyncRecorder){
         return new NewPlaylistExecutor(youtubeMusicService, playlistConversionValidator,
-                spotifyToYoutubeDestinationRegistry, syncRunTracker);
+                spotifyToYoutubeDestinationRegistry, syncRunTracker,trackSyncRecorder);
     }
 
     @Bean
     public ExistingPlaylistExecutor youtubeExistingPlaylistExecutor(
             YoutubeMusicService youtubeMusicService, PlaylistConversionValidator playlistConversionValidator,
-            PlaylistDestinationRegistry spotifyToYoutubeDestinationRegistry, SyncRunTracker runTracker){
+            PlaylistDestinationRegistry spotifyToYoutubeDestinationRegistry, SyncRunTracker runTracker,
+            TrackSyncRecorder trackSyncRecorder){
         return new ExistingPlaylistExecutor(youtubeMusicService, playlistConversionValidator,
-                spotifyToYoutubeDestinationRegistry, runTracker);
+                spotifyToYoutubeDestinationRegistry, runTracker, trackSyncRecorder);
     }
 
     @Bean
@@ -65,5 +67,10 @@ public class ConversionConfig {
     @Bean
     public SyncRunTracker syncRunTracker(SyncStateStore store){
         return new SyncRunTracker(store);
+    }
+
+    @Bean
+    public TrackSyncRecorder trackSyncRecorder(SyncStateStore store) {
+        return new TrackSyncRecorder(store);
     }
 }

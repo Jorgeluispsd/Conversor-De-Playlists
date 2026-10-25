@@ -47,12 +47,15 @@ class PlaylistConverterTest {
         PlaylistDestinationRegistry destinationRegistry =
                 mock(PlaylistDestinationRegistry.class);
 
+        TrackSyncRecorder trackSyncRecorder = new TrackSyncRecorder(store);
 
         NewPlaylistExecutor newPlaylistExecutor =
-                new NewPlaylistExecutor(destination, validator, destinationRegistry, runTracker);
+                new NewPlaylistExecutor(destination, validator, destinationRegistry,
+                        runTracker, trackSyncRecorder);
 
         ExistingPlaylistExecutor existingPlaylistExecutor =
-                new ExistingPlaylistExecutor(destination, validator, destinationRegistry, runTracker);
+                new ExistingPlaylistExecutor(destination, validator, destinationRegistry,
+                        runTracker, trackSyncRecorder);
 
         converter = new PlaylistConverter(analyzer, destination,
                 newPlaylistExecutor, existingPlaylistExecutor, validator);
@@ -101,8 +104,8 @@ class PlaylistConverterTest {
         order.verify(destination).searchCandidates(secondSong);
         order.verify(destination).createPlaylist("Minha playlist", PlaylistVisibility.PRIVATE);
 
-        order.verify(destination).addTracks(
-                "destination-playlist", List.of("video-A"));
+        order.verify(destination).addTracks(eq(
+                "destination-playlist"), eq(List.of("video-A")), any());
 
         verifyNoMoreInteractions(destination);
     }
@@ -171,9 +174,8 @@ class PlaylistConverterTest {
                 PlaylistVisibility.PRIVATE))
                 .thenReturn("destination-playlist");
 
-        doThrow(original).when(destination).addTracks(
-                "destination-playlist",
-                List.of("video-A"));
+        doThrow(original).when(destination).addTracks(eq("destination-playlist"),
+                eq(List.of("video-A")), any());
 
         YoutubeTrackInsertionException result = assertThrows(
                 YoutubeTrackInsertionException.class,
@@ -184,9 +186,8 @@ class PlaylistConverterTest {
         verify(destination, times(1)).createPlaylist("Minha playlist",
                 PlaylistVisibility.PRIVATE);
 
-        verify(destination, times(1)).addTracks(
-                "destination-playlist",
-                List.of("video-A"));
+        verify(destination, times(1)).addTracks(eq("destination-playlist"),
+                eq(List.of("video-A")), any());
     }
 
     @Test

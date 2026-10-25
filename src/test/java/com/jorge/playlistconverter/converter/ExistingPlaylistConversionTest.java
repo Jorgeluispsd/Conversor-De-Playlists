@@ -41,6 +41,7 @@ class ExistingPlaylistConversionTest {
 
         SyncStateStore store = mock(SyncStateStore.class);
         SyncRunTracker runTracker = new SyncRunTracker(store);
+        TrackSyncRecorder trackSyncRecorder = new TrackSyncRecorder(store);
 
         PlaylistAnalyzer analyzer = new PlaylistAnalyzer(source, destination, matcher);
 
@@ -52,10 +53,12 @@ class ExistingPlaylistConversionTest {
 
 
         NewPlaylistExecutor newPlaylistExecutor =
-                new NewPlaylistExecutor(destination, validator, destinationRegistry, runTracker);
+                new NewPlaylistExecutor(destination, validator, destinationRegistry,
+                        runTracker, trackSyncRecorder);
 
         ExistingPlaylistExecutor existingPlaylistExecutor =
-                new ExistingPlaylistExecutor(destination, validator, destinationRegistry, runTracker);
+                new ExistingPlaylistExecutor(destination, validator, destinationRegistry,
+                        runTracker, trackSyncRecorder);
 
         converter = new PlaylistConverter(analyzer, destination,
                 newPlaylistExecutor, existingPlaylistExecutor, validator);
@@ -91,8 +94,8 @@ class ExistingPlaylistConversionTest {
         assertEquals(2, result.insertedCount());
         assertEquals(1, result.skippedCount());
 
-        verify(destination).addTracks(
-                "destination-playlist", List.of("video-B", "video-C"));
+        verify(destination).addTracks(eq("destination-playlist"),
+                eq(List.of("video-B", "video-C")), any());
 
         verify(destination, never()).createPlaylist(anyString());
 
@@ -117,8 +120,8 @@ class ExistingPlaylistConversionTest {
         assertEquals(1, result.insertedCount());
         assertEquals(1, result.skippedCount());
 
-        verify(destination).addTracks(
-                "destination-playlist", List.of("same-video"));
+        verify(destination).addTracks(eq("destination-playlist"),
+                eq(List.of("same-video")), any());
 
         verify(destination, never()).createPlaylist(anyString());
     }
@@ -138,7 +141,7 @@ class ExistingPlaylistConversionTest {
         assertEquals(0, result.insertedCount());
         assertEquals(1, result.skippedCount());
 
-        verify(destination, never()).addTracks(anyString(), anyList());
+        verify(destination, never()).addTracks(anyString(), anyList(), any());
         verify(destination, never()).createPlaylist(anyString());
     }
 
@@ -162,8 +165,8 @@ class ExistingPlaylistConversionTest {
         assertEquals(1, result.insertedCount());
         assertEquals(0, result.skippedCount());
 
-        verify(destination).addTracks(
-                "destination-playlist", List.of("video-B"));
+        verify(destination).addTracks(eq("destination-playlist"),
+                eq(List.of("video-B")), any());
 
         verify(destination, never()).createPlaylist(anyString());
     }
@@ -219,8 +222,8 @@ class ExistingPlaylistConversionTest {
         YoutubeTrackInsertionException original = new YoutubeTrackInsertionException(
                         "Falha de inserção simulada.");
 
-        doThrow(original).when(destination).addTracks(
-                "destination-playlist", List.of("video-A"));
+        doThrow(original).when(destination).addTracks(eq("destination-playlist"),
+                eq(List.of("video-A")), any());
 
         YoutubeTrackInsertionException result = assertThrows(
                 YoutubeTrackInsertionException.class,
@@ -229,8 +232,8 @@ class ExistingPlaylistConversionTest {
 
         assertSame(original, result);
 
-        verify(destination, times(1)).addTracks(
-                "destination-playlist", List.of("video-A"));
+        verify(destination, times(1)).addTracks(eq("destination-playlist"),
+                eq(List.of("video-A")), any());
 
         verify(destination, never()).createPlaylist(anyString());
     }

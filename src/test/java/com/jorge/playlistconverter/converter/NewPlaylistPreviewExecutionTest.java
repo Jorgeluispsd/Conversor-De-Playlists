@@ -18,6 +18,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -40,6 +41,7 @@ class NewPlaylistPreviewExecutionTest {
 
         store = mock(SyncStateStore.class);
         SyncRunTracker runTracker = new SyncRunTracker(store);
+        TrackSyncRecorder trackSyncRecorder = new TrackSyncRecorder(store);
 
         PlaylistAnalyzer analyzer = new PlaylistAnalyzer(source, destination, matcher);
 
@@ -47,10 +49,12 @@ class NewPlaylistPreviewExecutionTest {
                 new PlaylistConversionValidator();
 
         NewPlaylistExecutor newPlaylistExecutor =
-                new NewPlaylistExecutor(destination, validator, destinationRegistry, runTracker);
+                new NewPlaylistExecutor(destination, validator, destinationRegistry,
+                        runTracker, trackSyncRecorder);
 
         ExistingPlaylistExecutor existingPlaylistExecutor =
-                new ExistingPlaylistExecutor(destination, validator, destinationRegistry, runTracker);
+                new ExistingPlaylistExecutor(destination, validator, destinationRegistry,
+                        runTracker, trackSyncRecorder);
 
         converter = new PlaylistConverter(analyzer, destination,
                 newPlaylistExecutor, existingPlaylistExecutor, validator);
@@ -91,8 +95,8 @@ class NewPlaylistPreviewExecutionTest {
 
         order.verify(store).startSyncRun(10L);
 
-        order.verify(destination).addTracks(
-                "new-playlist", List.of("video-A", "video-B"));
+        order.verify(destination).addTracks(eq("new-playlist"),
+                eq(List.of("video-A", "video-B")), any());
 
         order.verify(store).finishSyncRun(20L, SyncRunStatus.SUCCESS);
 
@@ -113,8 +117,8 @@ class NewPlaylistPreviewExecutionTest {
 
         verify(destination).createPlaylist(
                 "Meu Rock", PlaylistVisibility.PRIVATE);
-        verify(destination).addTracks(
-                "new-playlist", List.of("video-A"));
+        verify(destination).addTracks(eq("new-playlist"),
+                eq(List.of("video-A")), any());
 
         verifyNoMoreInteractions(destination);
         verifyNoInteractions(source, matcher);
@@ -144,8 +148,8 @@ class NewPlaylistPreviewExecutionTest {
         assertEquals(preview.matches(), result.matches());
         assertEquals(missing, result.matches().get(3));
 
-        verify(destination).addTracks(
-                "new-playlist", List.of("video-A", "video-B"));
+        verify(destination).addTracks(eq("new-playlist"),
+                eq(List.of("video-A", "video-B")), any());
 
         verifyNoInteractions(source, matcher);
     }
@@ -265,8 +269,8 @@ class NewPlaylistPreviewExecutionTest {
                 new YoutubeTrackInsertionException(
                         "Falha de inserção simulada.");
 
-        doThrow(original).when(destination).addTracks(
-                "new-playlist", List.of("video-A"));
+        doThrow(original).when(destination).addTracks(eq("new-playlist"),
+                eq(List.of("video-A")), any());
 
         YoutubeTrackInsertionException result = assertThrows(
                 YoutubeTrackInsertionException.class,
@@ -282,8 +286,8 @@ class NewPlaylistPreviewExecutionTest {
         verify(destinationRegistry).registerDestination("source-playlist",
                 "new-playlist");
 
-        verify(destination, times(1)).addTracks(
-                "new-playlist", List.of("video-A"));
+        verify(destination, times(1)).addTracks(eq("new-playlist"),
+                eq(List.of("video-A")), any());
 
         verifyNoMoreInteractions(destination);
         verifyNoInteractions(source, matcher);
@@ -361,6 +365,146 @@ class NewPlaylistPreviewExecutionTest {
 
         verifyNoMoreInteractions(destination, destinationRegistry, store);
         verifyNoInteractions(source, matcher);
+    }
+
+    @Test
+    void shouldRecordConfirmedTracksBeforeCompletingRun() {
+        MatchResult firstMatch = match("source-A", "video-A");
+        MatchResult secondMatch = match("source-B", "video-B");
+
+        PlaylistPreview preview = preview(firstMatch, secondMatch);
+
+        when(destination.createPlaylist("Meu Rock", PlaylistVisibility.PRIVATE
+        )).thenReturn("new-playlist");
+
+        doAnswer(invocation -> {
+            Consumer<String> listener = invocation.getArgument(2);
+
+            listener.accept("video-A");
+            listener.accept("video-B");
+
+            return null;
+        }).when(destination).addTracks(
+                eq("new-playlist"),
+                eq(List.of("video-A", "video-B")),
+                any());
+
+        ConversionResult result =
+                converter.executeNewPlaylistPreview(preview, "Meu Rock");
+
+        assertEquals(2, result.insertedCount());
+
+        var order = inOrder(store);
+
+        order.verify(store).startSyncRun(10L);
+
+        order.verify(store).markSynced(10L, firstMatch.sourceSong(),
+                "video-A", "success", firstMatch.confidence());
+
+        order.verify(store).markSynced(10L, secondMatch.sourceSong(),
+                "video-B", "success", secondMatch.confidence());
+
+        order.verify(store).finishSyncRun(20L, SyncRunStatus.SUCCESS);
+
+        verifyNoMoreInteractions(store);
+    }
+
+    @Test
+    void shouldKeepFirstTrackRecordedWhenSecondInsertionFails() {
+        MatchResult firstMatch = match("source-A", "video-A");
+        MatchResult secondMatch = match("source-B", "video-B");
+
+        PlaylistPreview preview = preview(firstMatch, secondMatch);
+
+        when(destination.createPlaylist("Meu Rock", PlaylistVisibility.PRIVATE
+        )).thenReturn("new-playlist");
+
+        YoutubeTrackInsertionException original =
+                new YoutubeTrackInsertionException(
+                        "Falha simulada na inserção de B.");
+
+        doAnswer(invocation -> {
+            Consumer<String> listener = invocation.getArgument(2);
+
+            listener.accept("video-A");
+
+            throw original;
+        }).when(destination).addTracks(
+                eq("new-playlist"),
+                eq(List.of("video-A", "video-B")),
+                any());
+
+        YoutubeTrackInsertionException result = assertThrows(
+                YoutubeTrackInsertionException.class,
+                () -> converter.executeNewPlaylistPreview(preview, "Meu Rock"));
+
+        assertSame(original, result);
+
+        var order = inOrder(store);
+
+        order.verify(store).startSyncRun(10L);
+
+        order.verify(store).markSynced(10L, firstMatch.sourceSong(), "video-A",
+                "success", firstMatch.confidence());
+
+        order.verify(store).finishSyncRun(20L, SyncRunStatus.FAILED);
+
+        verifyNoMoreInteractions(store);
+
+        verify(destination, times(1)).addTracks(eq("new-playlist"),
+                eq(List.of("video-A", "video-B")), any());
+    }
+
+    @Test
+    void shouldFailRunWhenRecordingConfirmedTrackFails() {
+        MatchResult firstMatch = match("source-A", "video-A");
+        PlaylistPreview preview = preview(firstMatch);
+
+        when(destination.createPlaylist("Meu Rock", PlaylistVisibility.PRIVATE
+        )).thenReturn("new-playlist");
+
+        SyncStateStorageException original =
+                new SyncStateStorageException(
+                        "Falha ao registrar a música confirmada.",
+                        new SQLException("Falha simulada"));
+
+        doThrow(original).when(store).markSynced(
+                10L,
+                firstMatch.sourceSong(),
+                "video-A",
+                "success",
+                firstMatch.confidence());
+
+        doAnswer(invocation -> {
+            Consumer<String> listener = invocation.getArgument(2);
+
+            listener.accept("video-A");
+
+            return null;
+        }).when(destination).addTracks(
+                eq("new-playlist"),
+                eq(List.of("video-A")),
+                any());
+
+        SyncStateStorageException result = assertThrows(
+                SyncStateStorageException.class,
+                () -> converter.executeNewPlaylistPreview(preview, "Meu Rock"));
+
+        assertSame(original, result);
+
+        var order = inOrder(store);
+
+        order.verify(store).startSyncRun(10L);
+
+        order.verify(store).markSynced(10L, firstMatch.sourceSong(),
+                "video-A", "success", firstMatch.confidence());
+
+        order.verify(store).finishSyncRun(20L, SyncRunStatus.FAILED);
+
+        verifyNoMoreInteractions(store);
+
+        verify(destination, times(1)).addTracks(eq("new-playlist"),
+                eq(List.of("video-A")), any());
     }
 
     private PlaylistPreview preview(MatchResult... matches) {

@@ -6,6 +6,7 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.PlaylistItem;
+import com.jorge.playlistconverter.errors.persistence.SyncStateStorageException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeQuotaExceededException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeTrackInsertionException;
 import com.jorge.playlistconverter.youtube.authorization.YoutubeAuthenticatedClientFactory;
@@ -14,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -191,6 +194,99 @@ class YoutubeTrackInsertionTest {
 
         assertSame(original, result.getCause());
         verify(request, times(1)).execute();
+    }
+
+    @Test
+    void shouldNotifyConfirmedVideosInInsertionOrder() throws IOException {
+        YouTube.PlaylistItems.Insert request = insertionRequest();
+
+        when(request.execute()).thenReturn(new PlaylistItem().setId("entry-A"),
+                new PlaylistItem().setId("entry-B"));
+
+        List<String> confirmedIds = new ArrayList<>();
+
+        service.addTracks("test-playlist",
+                List.of("video-A", "video-B"), confirmedIds::add);
+
+        assertEquals(List.of("video-A", "video-B"), confirmedIds);
+
+        verify(request, times(2)).execute();
+        verify(clientFactory, times(1)).create();
+    }
+
+    @Test
+    void shouldNotifyOnlySuccessfulVideosBeforeCommunicationFailure()
+            throws IOException {
+        YouTube.PlaylistItems.Insert request = insertionRequest();
+
+        IOException original = new IOException("Falha simulada");
+
+        when(request.execute())
+                .thenReturn(new PlaylistItem().setId("entry-A"))
+                .thenThrow(original);
+
+        List<String> confirmedIds = new ArrayList<>();
+
+        YoutubeTrackInsertionException result = assertThrows(
+                YoutubeTrackInsertionException.class,
+                () -> service.addTracks(
+                        "test-playlist",
+                        List.of("video-A", "video-B", "video-C"), confirmedIds::add));
+
+        assertSame(original, result.getCause());
+        assertEquals(List.of("video-A"), confirmedIds);
+
+        verify(request, times(2)).execute();
+    }
+
+    @Test
+    void shouldNotNotifyWhenInsertionResponseHasNoId() throws IOException {
+        YouTube.PlaylistItems.Insert request = insertionRequest();
+
+        when(request.execute()).thenReturn(new PlaylistItem());
+
+        List<String> confirmedIds = new ArrayList<>();
+
+        assertThrows(
+                YoutubeTrackInsertionException.class,
+                () -> service.addTracks("test-playlist",
+                        List.of("video-A"), confirmedIds::add));
+
+        assertTrue(confirmedIds.isEmpty());
+        verify(request, times(1)).execute();
+    }
+
+    @Test
+    void shouldStopAndPreserveFailureFromInsertionNotification()
+            throws IOException {
+        YouTube.PlaylistItems.Insert request = insertionRequest();
+
+        when(request.execute())
+                .thenReturn(new PlaylistItem().setId("entry-A"));
+
+        SyncStateStorageException original = new SyncStateStorageException(
+                "Falha ao registrar a faixa.",
+                new SQLException("Falha simulada"));
+
+        SyncStateStorageException result = assertThrows(
+                SyncStateStorageException.class,
+                () -> service.addTracks("test-playlist",
+                        List.of("video-A", "video-B"), insertedId -> {
+                            throw original;}));
+
+        assertSame(original, result);
+        verify(request, times(1)).execute();
+    }
+
+    @Test
+    void shouldRejectNullNotificationBeforeAuthentication() {
+        assertThrows(
+                NullPointerException.class,
+                () -> service.addTracks("test-playlist",
+                        List.of("video-A"), null));
+
+        verifyNoInteractions(clientFactory,
+                authenticatedYoutube, resource, youtube);
     }
 
     private YouTube.PlaylistItems.Insert insertionRequest() throws IOException{
