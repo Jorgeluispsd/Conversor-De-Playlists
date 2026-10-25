@@ -12,12 +12,15 @@ public class NewPlaylistExecutor {
     private final MusicService destination;
     private final PlaylistConversionValidator validator;
     private final PlaylistDestinationRegistry destinationRegistry;
+    private final SyncRunTracker runTracker;
 
     public NewPlaylistExecutor(MusicService destination, PlaylistConversionValidator validator,
-                               PlaylistDestinationRegistry destinationRegistry) {
+                               PlaylistDestinationRegistry destinationRegistry,
+                               SyncRunTracker runTracker) {
         this.destination = Objects.requireNonNull(destination);
         this.validator = Objects.requireNonNull(validator);
         this.destinationRegistry = Objects.requireNonNull(destinationRegistry);
+        this.runTracker = Objects.requireNonNull(runTracker);
     }
 
     public ConversionResult execute(PlaylistPreview preview, String destinationName,
@@ -29,8 +32,13 @@ public class NewPlaylistExecutor {
         String destinationPlaylistId = destination.createPlaylist(destinationName.strip(),
                 visibility);
 
-        registerCreatedDestination(preview.sourcePlaylistId(), destinationPlaylistId);
+        long syncJobId = registerCreatedDestination(preview.sourcePlaylistId(), destinationPlaylistId);
 
+        return runTracker.execute(syncJobId, () -> insertTracks(preview, destinationPlaylistId, idsToInsert));
+    }
+
+    private ConversionResult insertTracks(PlaylistPreview preview, String destinationPlaylistId,
+                                          List<String> idsToInsert){
         destination.addTracks(destinationPlaylistId, idsToInsert);
 
         int skippedCount = (int) preview.foundCount() - idsToInsert.size();
@@ -39,9 +47,9 @@ public class NewPlaylistExecutor {
                 preview.matches(), idsToInsert.size(), skippedCount);
     }
 
-    private void registerCreatedDestination(String sourcePlaylistId, String destinationPlaylistId){
+    private long registerCreatedDestination(String sourcePlaylistId, String destinationPlaylistId){
         try {
-            destinationRegistry.registerDestination(sourcePlaylistId, destinationPlaylistId);
+            return destinationRegistry.registerDestination(sourcePlaylistId, destinationPlaylistId);
 
         }catch (SyncStateStorageException e){
             throw new SyncStateStorageException("A playlist foi criada no YouTube com o ID "

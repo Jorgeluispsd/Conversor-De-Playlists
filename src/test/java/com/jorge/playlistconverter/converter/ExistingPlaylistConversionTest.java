@@ -6,6 +6,7 @@ import com.jorge.playlistconverter.matcher.TrackMatcher;
 import com.jorge.playlistconverter.model.MatchResult;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
+import com.jorge.playlistconverter.state.SyncStateStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -38,6 +39,9 @@ class ExistingPlaylistConversionTest {
         destination = mock(MusicService.class);
         matcher = mock(TrackMatcher.class);
 
+        SyncStateStore store = mock(SyncStateStore.class);
+        SyncRunTracker runTracker = new SyncRunTracker(store);
+
         PlaylistAnalyzer analyzer = new PlaylistAnalyzer(source, destination, matcher);
 
         PlaylistConversionValidator validator =
@@ -48,10 +52,10 @@ class ExistingPlaylistConversionTest {
 
 
         NewPlaylistExecutor newPlaylistExecutor =
-                new NewPlaylistExecutor(destination, validator, destinationRegistry);
+                new NewPlaylistExecutor(destination, validator, destinationRegistry, runTracker);
 
         ExistingPlaylistExecutor existingPlaylistExecutor =
-                new ExistingPlaylistExecutor(destination, validator, destinationRegistry);
+                new ExistingPlaylistExecutor(destination, validator, destinationRegistry, runTracker);
 
         converter = new PlaylistConverter(analyzer, destination,
                 newPlaylistExecutor, existingPlaylistExecutor, validator);

@@ -1,6 +1,7 @@
 package com.jorge.playlistconverter.converter;
 
 import com.jorge.playlistconverter.enums.PlaylistVisibility;
+import com.jorge.playlistconverter.enums.SyncRunStatus;
 import com.jorge.playlistconverter.errors.persistence.SyncStateStorageException;
 import com.jorge.playlistconverter.errors.youtube.YoutubePlaylistCreationException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeTrackInsertionException;
@@ -8,6 +9,7 @@ import com.jorge.playlistconverter.matcher.TrackMatcher;
 import com.jorge.playlistconverter.model.MatchResult;
 import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.service.MusicService;
+import com.jorge.playlistconverter.state.SyncStateStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,6 +29,7 @@ class NewPlaylistPreviewExecutionTest {
     private TrackMatcher matcher;
     private PlaylistConverter converter;
     private PlaylistDestinationRegistry destinationRegistry;
+    private SyncStateStore store;
 
     @BeforeEach
     void setUp() {
@@ -35,19 +38,27 @@ class NewPlaylistPreviewExecutionTest {
         matcher = mock(TrackMatcher.class);
         destinationRegistry = mock(PlaylistDestinationRegistry.class);
 
+        store = mock(SyncStateStore.class);
+        SyncRunTracker runTracker = new SyncRunTracker(store);
+
         PlaylistAnalyzer analyzer = new PlaylistAnalyzer(source, destination, matcher);
 
         PlaylistConversionValidator validator =
                 new PlaylistConversionValidator();
 
         NewPlaylistExecutor newPlaylistExecutor =
-                new NewPlaylistExecutor(destination, validator, destinationRegistry);
+                new NewPlaylistExecutor(destination, validator, destinationRegistry, runTracker);
 
         ExistingPlaylistExecutor existingPlaylistExecutor =
-                new ExistingPlaylistExecutor(destination, validator, destinationRegistry);
+                new ExistingPlaylistExecutor(destination, validator, destinationRegistry, runTracker);
 
         converter = new PlaylistConverter(analyzer, destination,
                 newPlaylistExecutor, existingPlaylistExecutor, validator);
+
+        when(destinationRegistry.registerDestination(anyString(),
+                anyString())).thenReturn(10L);
+
+        when(store.startSyncRun(anyLong())).thenReturn(20L);
     }
 
     @ParameterizedTest
@@ -71,17 +82,21 @@ class NewPlaylistPreviewExecutionTest {
         assertEquals(2, result.insertedCount());
         assertEquals(0, result.skippedCount());
 
-        var order = inOrder(destination, destinationRegistry);
+        var order = inOrder(destination, destinationRegistry, store);
 
         order.verify(destination).createPlaylist("Meu Rock", visibility);
 
         order.verify(destinationRegistry).registerDestination("source-playlist",
                 "new-playlist");
 
+        order.verify(store).startSyncRun(10L);
+
         order.verify(destination).addTracks(
                 "new-playlist", List.of("video-A", "video-B"));
 
-        verifyNoMoreInteractions(destination, destinationRegistry);
+        order.verify(store).finishSyncRun(20L, SyncRunStatus.SUCCESS);
+
+        verifyNoMoreInteractions(destination, destinationRegistry, store);
         verifyNoInteractions(source, matcher);
     }
 
@@ -272,6 +287,8 @@ class NewPlaylistPreviewExecutionTest {
 
         verifyNoMoreInteractions(destination);
         verifyNoInteractions(source, matcher);
+        verify(store).startSyncRun(10L);
+        verify(store).finishSyncRun(20L, SyncRunStatus.FAILED);
     }
 
     @Test
@@ -307,6 +324,42 @@ class NewPlaylistPreviewExecutionTest {
                 "new-playlist");
 
         verifyNoMoreInteractions(destination, destinationRegistry);
+        verifyNoInteractions(source, matcher);
+    }
+
+    @Test
+    void shouldNotInsertTracksWhenStartingRunFails() {
+        when(destination.createPlaylist("Meu Rock",
+                PlaylistVisibility.PRIVATE)).thenReturn("new-playlist");
+
+        SyncStateStorageException original =
+                new SyncStateStorageException(
+                        "Falha ao iniciar a execução.",
+                        new SQLException("Falha simulada"));
+
+        when(store.startSyncRun(10L)).thenThrow(original);
+
+        SyncStateStorageException result = assertThrows(
+                SyncStateStorageException.class,
+                () -> converter.executeNewPlaylistPreview(
+                        preview(match("source-A", "video-A")),
+                        "Meu Rock"));
+
+        assertSame(original, result);
+
+        var order = inOrder(destination, destinationRegistry, store);
+
+        order.verify(destination).createPlaylist(
+                "Meu Rock",
+                PlaylistVisibility.PRIVATE);
+
+        order.verify(destinationRegistry).registerDestination(
+                "source-playlist",
+                "new-playlist");
+
+        order.verify(store).startSyncRun(10L);
+
+        verifyNoMoreInteractions(destination, destinationRegistry, store);
         verifyNoInteractions(source, matcher);
     }
 

@@ -2,9 +2,11 @@ package com.jorge.playlistconverter;
 
 import com.jorge.playlistconverter.converter.ConversionResult;
 import com.jorge.playlistconverter.converter.PlaylistConverter;
+import com.jorge.playlistconverter.converter.PlaylistDestinationRegistry;
 import com.jorge.playlistconverter.converter.PlaylistPreview;
 import com.jorge.playlistconverter.enums.PlaylistVisibility;
 import com.jorge.playlistconverter.model.Song;
+import com.jorge.playlistconverter.model.SyncJob;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -581,7 +583,7 @@ public class PlaylistConverterApplication {
 
  */
 
-
+/*
     @Bean
     CommandLineRunner newPlaylistPreviewRunner(PlaylistConverter converter,
                                                SpotifyPlaylistParser spotifyPlaylistParser) {
@@ -651,6 +653,151 @@ public class PlaylistConverterApplication {
             System.out.println("Adicionadas: " + result.insertedCount());
             System.out.println("Repetidas puladas: " + result.skippedCount());
             System.out.println("Link: https://www.youtube.com/playlist?list="
+                            + result.destinationPlaylistId());
+        };
+    }
+
+ */
+
+    @Bean
+    CommandLineRunner playlistDestinationChoiceRunner(
+            PlaylistConverter converter,
+            SpotifyPlaylistParser spotifyPlaylistParser,
+            YoutubePlaylistParser youtubePlaylistParser,
+            PlaylistDestinationRegistry destinationRegistry
+    ) {
+        return args -> {
+            String sourceInput =
+                    "https://open.spotify.com/playlist/2XnKAdcompOGmEpQnngIyx";
+
+            String sourcePlaylistId = spotifyPlaylistParser.parse(sourceInput);
+
+            List<SyncJob> savedDestinations =
+                    destinationRegistry.findDestinations(sourcePlaylistId);
+
+            System.out.println("=== Escolha do destino ===");
+
+            if (savedDestinations.isEmpty()) {
+                System.out.println(
+                        "Nenhum destino registrado para esta origem.");
+            }
+
+            savedDestinations.forEach(job -> System.out.println(
+                    "ID: " + job.destinationPlaylistId()
+                            + " | https://www.youtube.com/playlist?list="
+                            + job.destinationPlaylistId()));
+
+            System.out.println(
+                    "\nDigite NOVA para criar outra playlist, "
+                            + "cole o ID ou link de um destino listado, "
+                            + "ou digite CANCELAR:");
+
+            Scanner input = new Scanner(System.in);
+
+            if (!input.hasNextLine()) {
+                return;
+            }
+
+            String choice = input.nextLine().strip();
+
+            if ("CANCELAR".equalsIgnoreCase(choice)) {
+                System.out.println("Operação cancelada.");
+                return;
+            }
+
+            boolean createNew = "NOVA".equalsIgnoreCase(choice);
+
+            String destinationPlaylistId = createNew
+                    ? null
+                    : youtubePlaylistParser.parse(choice);
+
+            boolean savedDestination = savedDestinations.stream()
+                    .anyMatch(job -> job.destinationPlaylistId()
+                            .equals(destinationPlaylistId));
+
+            if (!createNew && !savedDestination) {
+                System.out.println(
+                        "O destino informado não está entre os vínculos listados. "
+                                + "Nenhuma conversão foi executada.");
+                return;
+            }
+
+            String destinationName = "Playlist Converter - Teste de vínculo novo";
+            PlaylistVisibility visibility = PlaylistVisibility.PRIVATE;
+
+            PlaylistPreview preview = createNew
+                    ? converter.previewNewPlaylist(sourcePlaylistId)
+                    : converter.previewExistingPlaylist(
+                    sourcePlaylistId,
+                    destinationPlaylistId);
+
+            System.out.println("\n=== Prévia ===");
+
+            if (createNew) {
+                System.out.println("Novo destino: " + destinationName);
+                System.out.println("Visibilidade: " + visibility);
+            } else {
+                System.out.println(
+                        "Destino existente: https://www.youtube.com/playlist?list="
+                                + destinationPlaylistId);
+            }
+
+            System.out.println("Total: " + preview.totalCount());
+            System.out.println("Encontradas: " + preview.foundCount());
+            System.out.println(
+                    "Já presentes: " + preview.alreadyPresentCount());
+            System.out.println("Para adicionar: " + preview.newTrackCount());
+            System.out.println(
+                    "Candidatos repetidos: " + preview.repeatedCandidateCount());
+
+            System.out.println("\n=== Correspondências selecionadas ===");
+
+            preview.matches().stream()
+                    .filter(match -> match.found())
+                    .forEach(match -> System.out.printf(
+                            "%s → %s | ID: %s%n",
+                            match.sourceSong().title(),
+                            match.matchedTitle(),
+                            match.matchedId()
+                    ));
+
+            System.out.println(
+                    "\n=== Não encontradas: "
+                            + preview.notFoundSongs().size() + " ===");
+
+            preview.notFoundSongs().forEach(song -> System.out.printf(
+                    "- %s — %s%n",
+                    song.title(),
+                    song.artist()));
+
+            if (createNew && preview.newTrackCount() == 0) {
+                System.out.println(
+                        "Não há músicas para criar a nova playlist.");
+                return;
+            }
+
+            System.out.println(
+                    "\nDigite CONFIRMAR para executar "
+                            + "ou qualquer outro texto para cancelar:");
+
+            if (!input.hasNextLine()
+                    || !"CONFIRMAR".equalsIgnoreCase(
+                    input.nextLine().strip())) {
+                System.out.println(
+                        "Operação cancelada. Nenhuma escrita foi solicitada.");
+                return;
+            }
+
+            ConversionResult result = createNew
+                    ? converter.executeNewPlaylistPreview(preview,
+                    destinationName, visibility)
+                    : converter.executeExistingPlaylistPreview(preview);
+
+            System.out.println("\n=== Resultado ===");
+            System.out.println("Adicionadas: " + result.insertedCount());
+            System.out.println("Puladas: " + result.skippedCount());
+            System.out.println(
+                    "Link: https://www.youtube.com/playlist?list="
                             + result.destinationPlaylistId());
         };
     }

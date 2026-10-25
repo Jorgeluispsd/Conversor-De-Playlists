@@ -14,12 +14,14 @@ public class ExistingPlaylistExecutor {
     private final MusicService destination;
     private final PlaylistConversionValidator validator;
     private final PlaylistDestinationRegistry destinationRegistry;
+    private final SyncRunTracker runTracker;
 
     public ExistingPlaylistExecutor(MusicService destination, PlaylistConversionValidator validator,
-                                    PlaylistDestinationRegistry destinationRegistry) {
+                                    PlaylistDestinationRegistry destinationRegistry, SyncRunTracker runTracker) {
         this.destination = Objects.requireNonNull(destination);
         this.validator = Objects.requireNonNull(validator);
         this.destinationRegistry= Objects.requireNonNull(destinationRegistry);
+        this.runTracker = Objects.requireNonNull(runTracker);
     }
 
     public ConversionResult execute(PlaylistPreview preview){
@@ -30,11 +32,16 @@ public class ExistingPlaylistExecutor {
 
         validateDestinationSnapshot(preview, currentDestinationIds);
 
-        destinationRegistry.registerDestination(preview.sourcePlaylistId(), preview.destinationPlaylistId());
+        long syncJobId = destinationRegistry
+                .registerDestination(preview.sourcePlaylistId(), preview.destinationPlaylistId());
 
         List<String> idsToInsert = preview.newTrackIds().stream()
                 .filter(id -> !currentDestinationIds.contains(id)).toList();
 
+        return runTracker.execute(syncJobId, () -> insertTracks(preview, idsToInsert));
+    }
+
+    private ConversionResult insertTracks(PlaylistPreview preview, List<String> idsToInsert){
         if (!idsToInsert.isEmpty()){
             destination.addTracks(preview.destinationPlaylistId(), idsToInsert);
         }
@@ -43,7 +50,6 @@ public class ExistingPlaylistExecutor {
 
         return new ConversionResult(preview.sourcePlaylistId(), preview.destinationPlaylistId(),
                 preview.matches(), idsToInsert.size(), skippedCount);
-
     }
 
     private void validateDestinationSnapshot(PlaylistPreview preview, Set<String> currentDestinationIds){
