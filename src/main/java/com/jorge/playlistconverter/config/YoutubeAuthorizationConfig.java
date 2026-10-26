@@ -1,6 +1,6 @@
 package com.jorge.playlistconverter.config;
 
-import com.jorge.playlistconverter.youtube.GoogleAuthService;
+import com.jorge.playlistconverter.youtube.authorization.GoogleAuthService;
 import com.jorge.playlistconverter.youtube.authorization.GoogleAuthorizationBrowser;
 import com.jorge.playlistconverter.youtube.authorization.GoogleAuthorizationFlowFactory;
 import com.jorge.playlistconverter.youtube.authorization.GoogleClientSecretsLoader;

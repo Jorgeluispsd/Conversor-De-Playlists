@@ -1,5 +1,6 @@
-package com.jorge.playlistconverter.converter;
+package com.jorge.playlistconverter.converter.history;
 
+import com.jorge.playlistconverter.converter.preview.PlaylistPreview;
 import com.jorge.playlistconverter.errors.persistence.SyncStateStorageException;
 import com.jorge.playlistconverter.model.MatchResult;
 import com.jorge.playlistconverter.model.Song;

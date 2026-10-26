@@ -1,5 +1,6 @@
 package com.jorge.playlistconverter.converter;
 
+import com.jorge.playlistconverter.converter.preview.PlaylistPreview;
 import com.jorge.playlistconverter.enums.PlaylistVisibility;
 
 import java.util.Objects;

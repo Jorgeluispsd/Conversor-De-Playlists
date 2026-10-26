@@ -1,8 +1,7 @@
-package com.jorge.playlistconverter.youtube;
+package com.jorge.playlistconverter.youtube.authorization;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 import com.jorge.playlistconverter.errors.youtube.GoogleClientSecretsException;
-import com.jorge.playlistconverter.youtube.authorization.GoogleClientSecretsLoader;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

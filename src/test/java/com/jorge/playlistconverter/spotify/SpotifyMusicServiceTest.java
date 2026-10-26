@@ -2,6 +2,7 @@ package com.jorge.playlistconverter.spotify;
 
 import com.jorge.playlistconverter.errors.OperationInterruptedException;
 import com.jorge.playlistconverter.errors.spotify.SpotifyRequestLimitException;
+import com.jorge.playlistconverter.spotify.authorization.SpotifyAuthService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import se.michaelthelin.spotify.SpotifyApi;

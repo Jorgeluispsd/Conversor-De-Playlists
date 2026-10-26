@@ -1,4 +1,4 @@
-package com.jorge.playlistconverter.spotify;
+package com.jorge.playlistconverter.spotify.authorization;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;

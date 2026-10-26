@@ -4,7 +4,6 @@ import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.youtube.YouTube;
-import com.jorge.playlistconverter.youtube.GoogleAuthService;
 
 import java.util.Objects;
 

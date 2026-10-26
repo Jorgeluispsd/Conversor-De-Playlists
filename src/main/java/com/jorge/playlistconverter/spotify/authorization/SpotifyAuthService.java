@@ -1,12 +1,12 @@
-package com.jorge.playlistconverter.spotify;
+package com.jorge.playlistconverter.spotify.authorization;
 
 import com.jorge.playlistconverter.errors.authorization.AuthorizationCallbackException;
 import com.jorge.playlistconverter.errors.authorization.AuthorizationDeniedException;
 import com.jorge.playlistconverter.errors.authorization.AuthorizationTimeoutException;
 import com.jorge.playlistconverter.errors.spotify.SpotifyAuthenticationException;
-import com.jorge.playlistconverter.spotify.authorization.SpotifyAuthorizationGenerator;
 import com.jorge.playlistconverter.spotify.callback.CallbackSession;
 import com.jorge.playlistconverter.spotify.callback.SpotifyCallbackServer;
+import com.jorge.playlistconverter.spotify.session.SpotifyTokenStorage;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import se.michaelthelin.spotify.SpotifyApi;

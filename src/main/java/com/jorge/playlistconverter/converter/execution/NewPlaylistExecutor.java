@@ -1,5 +1,11 @@
-package com.jorge.playlistconverter.converter;
+package com.jorge.playlistconverter.converter.execution;
 
+import com.jorge.playlistconverter.converter.ConversionResult;
+import com.jorge.playlistconverter.converter.PlaylistConversionValidator;
+import com.jorge.playlistconverter.converter.history.PlaylistDestinationRegistry;
+import com.jorge.playlistconverter.converter.preview.PlaylistPreview;
+import com.jorge.playlistconverter.converter.history.SyncRunTracker;
+import com.jorge.playlistconverter.converter.history.TrackSyncRecorder;
 import com.jorge.playlistconverter.enums.PlaylistVisibility;
 import com.jorge.playlistconverter.errors.persistence.SyncStateStorageException;
 import com.jorge.playlistconverter.service.MusicService;

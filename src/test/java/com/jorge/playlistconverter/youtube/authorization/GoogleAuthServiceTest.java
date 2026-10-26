@@ -8,7 +8,6 @@ import com.jorge.playlistconverter.errors.OperationInterruptedException;
 import com.jorge.playlistconverter.errors.authorization.AuthorizationDeniedException;
 import com.jorge.playlistconverter.errors.authorization.AuthorizationTimeoutException;
 import com.jorge.playlistconverter.errors.youtube.YoutubeAuthenticationException;
-import com.jorge.playlistconverter.youtube.GoogleAuthService;
 import com.jorge.playlistconverter.youtube.callback.GoogleCallbackServer;
 import com.jorge.playlistconverter.youtube.callback.GoogleCallbackSession;
 import org.junit.jupiter.api.AfterEach;

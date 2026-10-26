@@ -1,9 +1,9 @@
 package com.jorge.playlistconverter.config;
 
-import com.jorge.playlistconverter.spotify.SpotifyAuthService;
-import com.jorge.playlistconverter.spotify.SpotifyClientCredentialsService;
+import com.jorge.playlistconverter.spotify.authorization.SpotifyAuthService;
+import com.jorge.playlistconverter.spotify.authorization.SpotifyClientCredentialsService;
 import com.jorge.playlistconverter.spotify.SpotifyMusicService;
-import com.jorge.playlistconverter.spotify.SpotifyTokenStorage;
+import com.jorge.playlistconverter.spotify.session.SpotifyTokenStorage;
 import com.jorge.playlistconverter.spotify.authorization.SpotifyAuthorizationGenerator;
 import com.jorge.playlistconverter.spotify.callback.SpotifyCallbackServer;
 import io.github.cdimascio.dotenv.Dotenv;

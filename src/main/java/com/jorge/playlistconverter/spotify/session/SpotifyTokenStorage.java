@@ -1,4 +1,4 @@
-package com.jorge.playlistconverter.spotify;
+package com.jorge.playlistconverter.spotify.session;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;

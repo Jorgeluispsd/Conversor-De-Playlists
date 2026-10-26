@@ -1,4 +1,4 @@
-package com.jorge.playlistconverter.converter;
+package com.jorge.playlistconverter.converter.preview;
 
 import com.jorge.playlistconverter.model.MatchResult;
 import com.jorge.playlistconverter.model.Song;

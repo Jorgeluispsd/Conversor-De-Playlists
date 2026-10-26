@@ -1,5 +1,6 @@
-package com.jorge.playlistconverter.converter;
+package com.jorge.playlistconverter.converter.history;
 
+import com.jorge.playlistconverter.converter.ConversionResult;
 import com.jorge.playlistconverter.enums.SyncRunStatus;
 import com.jorge.playlistconverter.state.SyncStateStore;
 

@@ -2,10 +2,9 @@ package com.jorge.playlistconverter;
 
 import com.jorge.playlistconverter.converter.ConversionResult;
 import com.jorge.playlistconverter.converter.PlaylistConverter;
-import com.jorge.playlistconverter.converter.PlaylistDestinationRegistry;
-import com.jorge.playlistconverter.converter.PlaylistPreview;
+import com.jorge.playlistconverter.converter.history.PlaylistDestinationRegistry;
+import com.jorge.playlistconverter.converter.preview.PlaylistPreview;
 import com.jorge.playlistconverter.enums.PlaylistVisibility;
-import com.jorge.playlistconverter.model.Song;
 import com.jorge.playlistconverter.model.SyncJob;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;

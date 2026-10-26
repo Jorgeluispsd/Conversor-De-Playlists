@@ -3,7 +3,6 @@ package com.jorge.playlistconverter.youtube.authorization;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.services.youtube.YouTube;
 import com.jorge.playlistconverter.errors.youtube.YoutubeAuthenticationException;
-import com.jorge.playlistconverter.youtube.GoogleAuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

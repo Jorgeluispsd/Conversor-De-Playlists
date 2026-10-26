@@ -4,7 +4,7 @@ package com.jorge.playlistconverter.config;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.youtube.YouTube;
-import com.jorge.playlistconverter.youtube.GoogleAuthService;
+import com.jorge.playlistconverter.youtube.authorization.GoogleAuthService;
 import com.jorge.playlistconverter.youtube.YoutubeMusicService;
 import com.jorge.playlistconverter.youtube.authorization.YoutubeAuthenticatedClientFactory;
 import io.github.cdimascio.dotenv.Dotenv;
