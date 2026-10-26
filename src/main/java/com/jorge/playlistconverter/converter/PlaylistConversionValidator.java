@@ -11,11 +11,9 @@ public class PlaylistConversionValidator {
                                        String destinationName,
                                        PlaylistVisibility visibility) {
         Objects.requireNonNull(preview, "A prévia deve ser informada.");
-        Objects.requireNonNull(visibility, "A visibilidade da playlist deve ser informada.");
 
+        validateNewPlaylistOptions(destinationName, visibility);
         validateSource(preview);
-
-        requireNonBlank(destinationName, "O nome da playlist de destino deve ser informado.");
 
         if (preview.destinationPlaylistId() != null
                 || !preview.existingDestinationIds().isEmpty()){
@@ -51,5 +49,10 @@ public class PlaylistConversionValidator {
         if (value == null || value.isBlank()){
             throw new IllegalArgumentException(message);
         }
+    }
+
+    public void validateNewPlaylistOptions(String destinationName, PlaylistVisibility visibility){
+        Objects.requireNonNull(visibility, "A visibilidade da playlist deve ser informada.");
+        requireNonBlank(destinationName, "O nome da playlist de destino deve ser informado.");
     }
 }
