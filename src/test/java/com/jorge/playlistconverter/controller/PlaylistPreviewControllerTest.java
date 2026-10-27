@@ -6,6 +6,9 @@ import com.jorge.playlistconverter.dto.response.PlaylistPreviewResponse;
 import com.jorge.playlistconverter.enums.PlaylistVisibility;
 import com.jorge.playlistconverter.mapper.PlaylistPreviewResponseMapper;
 import com.jorge.playlistconverter.service.PlaylistPreviewService;
+import com.jorge.playlistconverter.dto.response.ApiErrorResponse;
+import com.jorge.playlistconverter.dto.response.FieldValidationErrorResponse;
+import com.jorge.playlistconverter.errors.http.ApiExceptionHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,6 +56,7 @@ class PlaylistPreviewControllerTest {
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setValidator(validator)
+                .setControllerAdvice(new ApiExceptionHandler())
                 .build();
 
         jsonMapper = JsonMapper.builder().build();
@@ -154,16 +158,23 @@ class PlaylistPreviewControllerTest {
             }
             """;
 
-        mockMvc.perform(post("/api/conversions/previews/new")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(json)).andExpect(status().isBadRequest());
+        ApiErrorResponse response = submitInvalidRequest("/api/conversions/previews/new",
+                json);
 
-        verifyNoInteractions(previewService);
+        assertEquals(400, response.status());
+        assertEquals("VALIDATION_ERROR", response.code());
+        assertEquals("Existem campos inválidos na requisição.",
+                response.message());
+        assertEquals("/api/conversions/previews/new", response.path());
+
+        assertEquals(List.of(new FieldValidationErrorResponse(
+                        "sourcePlaylist",
+                        "Informe o link ou o ID da playlist de origem.")),
+                response.fieldErrors());
     }
 
     @Test
-    void shouldRejectBlankExistingDestinationBeforePreparingPreview()
-            throws Exception {
+    void shouldRejectBlankExistingDestinationBeforePreparingPreview() throws Exception {
         String json = """
             {
               "sourcePlaylist": "1234567890123456789012",
@@ -171,11 +182,15 @@ class PlaylistPreviewControllerTest {
             }
             """;
 
-        mockMvc.perform(post("/api/conversions/previews/existing")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(json)).andExpect(status().isBadRequest());
+        ApiErrorResponse response = submitInvalidRequest("/api/conversions/previews/existing", json);
 
-        verifyNoInteractions(previewService);
+        assertEquals(400, response.status());
+        assertEquals("VALIDATION_ERROR", response.code());
+        assertEquals("/api/conversions/previews/existing", response.path());
+
+        assertEquals(List.of(new FieldValidationErrorResponse(
+                        "destinationPlaylist",
+                        "Informe o link ou o ID da playlist de destino.")), response.fieldErrors());
     }
 
     @Test
@@ -188,19 +203,40 @@ class PlaylistPreviewControllerTest {
             }
             """;
 
-        mockMvc.perform(post("/api/conversions/previews/new")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(json)).andExpect(status().isBadRequest());
+        ApiErrorResponse response = submitInvalidRequest("/api/conversions/previews/new", json);
 
-        verifyNoInteractions(previewService);
+        assertEquals(400, response.status());
+        assertEquals("INVALID_REQUEST_BODY", response.code());
+        assertEquals(
+                "O corpo JSON está ausente, malformado ou contém um valor inválido.",
+                response.message());
+        assertEquals("/api/conversions/previews/new", response.path());
+        assertTrue(response.fieldErrors().isEmpty());
     }
 
     @Test
     void shouldRejectMalformedJsonBeforePreparingPreview() throws Exception {
-        mockMvc.perform(post("/api/conversions/previews/new")
+        ApiErrorResponse response = submitInvalidRequest("/api/conversions/previews/new", "{");
+
+        assertEquals(400, response.status());
+        assertEquals("INVALID_REQUEST_BODY", response.code());
+        assertEquals("O corpo JSON está ausente, malformado ou contém um valor inválido.",
+                response.message());
+        assertEquals("/api/conversions/previews/new", response.path());
+        assertTrue(response.fieldErrors().isEmpty());
+    }
+
+    private ApiErrorResponse submitInvalidRequest(String path, String body) throws Exception {
+        var result = mockMvc.perform(post(path)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{")).andExpect(status().isBadRequest());
+                                .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_JSON)).andReturn();
 
         verifyNoInteractions(previewService);
+
+        return jsonMapper.readValue(result.getResponse().getContentAsString(),
+                ApiErrorResponse.class);
     }
 }
