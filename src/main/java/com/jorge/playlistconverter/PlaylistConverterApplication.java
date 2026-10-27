@@ -9,6 +9,7 @@ import com.jorge.playlistconverter.model.SyncJob;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import com.jorge.playlistconverter.input.SpotifyPlaylistParser;
 import com.jorge.playlistconverter.input.YoutubePlaylistParser;
@@ -28,10 +29,10 @@ public class PlaylistConverterApplication {
     }
 
     /**
-     * Laboratório de validações manuais de Spotify, YouTube, matcher e persistência H2.
-     * Habilitar apenas os runners do cenário em teste; ainda não realiza conversão completa.
-     * TODO (Fase 6): validar escrita e orquestração primeiro com playlist pequena.
-     * TODO (Fase 8): expor análise, prévia, revisão e execução confirmada por interface web.
+     * Exemplos de validação manual de Spotify, YouTube, matching e persistência.
+     * O runner de escolha do destino é habilitado pela propriedade
+     * playlist.converter.manual-runner.enabled.
+     * Os exemplos anteriores permanecem comentados como referência.
      */
 
 /*
@@ -659,6 +660,8 @@ public class PlaylistConverterApplication {
  */
 
     @Bean
+    @ConditionalOnProperty(name = "playlist.converter.manual-runner.enabled",
+            havingValue = "true", matchIfMissing = false)
     CommandLineRunner playlistDestinationChoiceRunner(
             PlaylistConverter converter,
             SpotifyPlaylistParser spotifyPlaylistParser,

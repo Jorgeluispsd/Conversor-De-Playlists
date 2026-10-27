@@ -47,7 +47,7 @@ public class TrackMatcher {
                     "\\b(?:react|reaction|reage|reacao)\\b"));
 
     private static final double MIN_TITLE_TOKEN_COVERAGE = 0.6;
-    private static final double MIN_CONFIDENCE = 0.5;
+    private static final double MIN_CONFIDENCE = 0.6;
     private static final double CONTAINMENT_FLOOR = 0.5;
     private static final int HASHTAG_SPAM_THRESHOLD = 2;
 
