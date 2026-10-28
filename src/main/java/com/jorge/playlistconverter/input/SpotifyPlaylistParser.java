@@ -1,5 +1,7 @@
 package com.jorge.playlistconverter.input;
 
+import com.jorge.playlistconverter.errors.input.InvalidPlaylistInputException;
+
 import java.net.URI;
 import java.util.regex.Pattern;
 
@@ -13,7 +15,7 @@ public class SpotifyPlaylistParser {
 
     public String parse(String input){
         if(input == null || input.isBlank()){
-            throw new IllegalArgumentException("Informe o link ou o ID da playlist do Spotify.");
+            throw new InvalidPlaylistInputException("Informe o link ou o ID da playlist do Spotify.");
         }
 
         String value = input.strip();
@@ -34,7 +36,8 @@ public class SpotifyPlaylistParser {
             return URI.create(value);
 
         }catch (IllegalArgumentException e){
-            throw new IllegalArgumentException("O link da playlist do Spotify é inválido.", e);
+            throw new InvalidPlaylistInputException(
+                    "O link da playlist do Spotify é inválido.", e);
         }
     }
 
@@ -45,7 +48,7 @@ public class SpotifyPlaylistParser {
                 && uri.getPort() == -1;
 
         if (!validUri){
-            throw new IllegalArgumentException("Informe um link HTTPS de playlist do open.spotify.com "
+            throw new InvalidPlaylistInputException("Informe um link HTTPS de playlist do open.spotify.com "
                     + "ou um ID válido.");
         }
     }
@@ -54,7 +57,7 @@ public class SpotifyPlaylistParser {
         var matcher = PLAYLIST_PATH_PATTERN.matcher(uri.getPath());
 
         if (!matcher.matches()){
-            throw new IllegalArgumentException("O link deve identificar uma playlist do Spotify.");
+            throw new InvalidPlaylistInputException("O link deve identificar uma playlist do Spotify.");
         }
 
         return matcher.group(1);

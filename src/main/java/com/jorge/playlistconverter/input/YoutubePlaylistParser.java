@@ -1,5 +1,7 @@
 package com.jorge.playlistconverter.input;
 
+import com.jorge.playlistconverter.errors.input.InvalidPlaylistInputException;
+
 import java.net.URI;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -18,7 +20,7 @@ public class YoutubePlaylistParser {
 
     public String parse(String input){
         if (input == null || input.isBlank()){
-            throw new IllegalArgumentException(
+            throw new InvalidPlaylistInputException(
                     "Informe o link ou o ID da playlist do YouTube.");
         }
 
@@ -40,7 +42,7 @@ public class YoutubePlaylistParser {
             return URI.create(value);
 
         }catch (IllegalArgumentException e){
-            throw new IllegalArgumentException(
+            throw new InvalidPlaylistInputException(
                     "O link da playlist do YouTube é inválido.", e);
         }
     }
@@ -58,7 +60,7 @@ public class YoutubePlaylistParser {
                 && uri.getPort() == -1;
 
         if (!validUrl){
-            throw new IllegalArgumentException(
+            throw new InvalidPlaylistInputException(
                     "Informe um link HTTPS de playlist do YouTube "
                             + "ou um ID válido.");
         }
@@ -66,7 +68,7 @@ public class YoutubePlaylistParser {
         String path = uri.getPath();
 
         if (!"/playlist".equals(path) && !"/watch".equals(path)){
-            throw new IllegalArgumentException(
+            throw new InvalidPlaylistInputException(
                     "O link deve identificar uma playlist do YouTube.");
         }
     }
@@ -76,7 +78,7 @@ public class YoutubePlaylistParser {
 
         if (playlistId == null
                 || !PLAYLIST_ID_PATTERN.matcher(playlistId).matches()){
-            throw new IllegalArgumentException(
+            throw new InvalidPlaylistInputException(
                     "O link deve conter um ID de playlist válido "
                             + "no parâmetro list.");
         }

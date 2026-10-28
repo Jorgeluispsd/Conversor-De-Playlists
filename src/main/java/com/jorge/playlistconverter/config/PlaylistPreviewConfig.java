@@ -6,6 +6,7 @@ import com.jorge.playlistconverter.converter.preview.InMemoryPlaylistPreviewStor
 
 import com.jorge.playlistconverter.input.SpotifyPlaylistParser;
 import com.jorge.playlistconverter.input.YoutubePlaylistParser;
+import com.jorge.playlistconverter.mapper.PlaylistConversionResponseMapper;
 import com.jorge.playlistconverter.mapper.PlaylistPreviewResponseMapper;
 import com.jorge.playlistconverter.service.PlaylistConfirmationService;
 import com.jorge.playlistconverter.service.PlaylistPreviewService;
@@ -44,5 +45,10 @@ public class PlaylistPreviewConfig {
     @Bean
     public PlaylistPreviewResponseMapper playlistPreviewResponseMapper() {
         return new PlaylistPreviewResponseMapper();
+    }
+
+    @Bean
+    public PlaylistConversionResponseMapper playlistConversionResponseMapper() {
+        return new PlaylistConversionResponseMapper();
     }
 }
